@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#101216">
-<title>Calorie & Keto Tracker</title>
+<title>Calorie & Sport Logger</title>
 <style>
   :root{
     --bg:#101216; --panel:#191c22; --panel-2:#20242c; --line:#2c313b;
@@ -16,19 +16,26 @@
   body{background:var(--bg);color:var(--ink);min-height:100dvh;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     padding:20px;padding-bottom:80px}
-  .header{display:flex;justify-content:between;align-items:center;margin-bottom:20px}
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
   .nav-tabs{display:flex;gap:10px;margin-bottom:20px}
   .nav-tabs a{color:var(--muted);text-decoration:none;padding:8px 16px;background:var(--panel);border-radius:8px;font-size:14px}
   .nav-tabs a.active{background:var(--accent);color:var(--accent-ink);font-weight:bold}
   
-  .grid-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+  .grid-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:15px}
   .stat-card{background:var(--panel);padding:12px;border-radius:12px;text-align:center;border:1px solid var(--line)}
   .stat-val{font-size:20px;font-weight:bold;margin-top:4px}
   .warn{color:var(--hi) !important}
   .safe{color:var(--good) !important}
 
+  /* Carb Progress Component */
+  .gauge-container{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:20px;border:1px solid var(--line)}
+  .gauge-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .gauge-bar{height:14px;background:var(--panel-2);border-radius:7px;overflow:hidden;position:relative;display:flex}
+  .gauge-fill{height:100%;width:0%;background:var(--good);transition:width 0.3s, background-color 0.3s}
+  .gauge-marker{position:absolute;left:20px;top:0;bottom:0;width:2px;background:var(--hi);opacity:0.6}
+
   .panel{background:var(--panel);border-radius:16px;padding:16px;margin-bottom:20px;border:1px solid var(--line)}
-  h3{margin-bottom:12px;font-size:16px;color:var(--muted)}
+  h3{margin-bottom:12px;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)}
   
   .form-group{margin-bottom:12px;display:flex;gap:8px}
   select, input, button{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
@@ -46,54 +53,85 @@
   .footer-nav a{color:var(--muted);text-decoration:none;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px}
   .footer-nav a.active{color:var(--accent)}
   #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--panel-2);
-    padding:10px 20px;border-radius:20px;border:1px solid var(--line);font-size:14px;opacity:0;transition:opacity 0.2s;pointer-events:none}
+    padding:10px 20px;border-radius:20px;border:1px solid var(--line);font-size:14px;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:99}
   #toast.show{opacity:1}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h2>Intake Tracker</h2>
+  <h2>Intake & Sport</h2>
   <input type="date" id="datePicker" style="width:auto;padding:6px 10px;">
 </div>
 
 <div class="nav-tabs">
-  <a href="calories.html" class="active">Log Meals</a>
+  <a href="calories.html" class="active">Log Tracker</a>
   <a href="calories-analysis.html">Simulation & Analysis</a>
 </div>
 
 <div class="grid-stats">
   <div class="stat-card">
-    <div style="font-size:11px;color:var(--muted)">Energy (kcal)</div>
+    <div style="font-size:11px;color:var(--muted)">Net Energy</div>
     <div class="stat-val" id="totalKcal">0</div>
   </div>
   <div class="stat-card">
-    <div style="font-size:11px;color:var(--muted)">Carbs (Limit 20g)</div>
+    <div style="font-size:11px;color:var(--muted)">Carbs Intake</div>
     <div class="stat-val" id="totalCarbs">0g</div>
   </div>
   <div class="stat-card">
-    <div style="font-size:11px;color:var(--muted)">Protein</div>
+    <div style="font-size:11px;color:var(--muted)">Protein Intake</div>
     <div class="stat-val" id="totalProtein">0g</div>
   </div>
 </div>
 
+<div class="gauge-container">
+  <div class="gauge-meta">
+    <span id="gaugeStatus">Ketosis Zone</span>
+    <span id="gaugeValue">0 / 20g Limit</span>
+  </div>
+  <div class="gauge-bar">
+    <div id="gaugeFill" class="gauge-fill"></div>
+  </div>
+</div>
+
 <div class="panel">
-  <h3>Add Food Item</h3>
+  <h3>Add Product Selection</h3>
   <div class="form-group">
     <select id="foodSelect"></select>
   </div>
   <div class="form-group">
-    <input type="number" id="foodAmount" placeholder="Amount in grams (g)" min="1">
-    <button id="addBtn" style="width:30%">Add</button>
+    <input type="number" id="foodAmount" placeholder="Weight amount (g)" min="1">
+    <button id="addBtn" style="width:35%">Add Food</button>
   </div>
 </div>
 
 <div class="panel">
-  <h3>Today's Logged Items</h3>
+  <h3>Manual Entry Override</h3>
+  <div class="form-group">
+    <input type="text" id="manualName" placeholder="E.g., Restaurant Meal / Label Override">
+  </div>
+  <div class="grid-stats" style="grid-template-columns:1fr 1fr 1fr; margin-bottom:10px;">
+    <input type="number" id="manualKcal" placeholder="kcal" min="0">
+    <input type="number" id="manualCarbs" placeholder="Carbs (g)" min="0" step="0.1">
+    <input type="number" id="manualProtein" placeholder="Prot (g)" min="0" step="0.1">
+  </div>
+  <button id="manualAddBtn">Log Quick Override</button>
+</div>
+
+<div class="panel">
+  <h3>Watch / Sport Activity Burn</h3>
+  <div class="form-group">
+    <input type="number" id="sportKcal" placeholder="Active Burn (kcal) from Watch" min="1">
+    <button id="sportSaveBtn" style="width:40%">Log Burn</button>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Today's Tracking Inventory</h3>
   <div id="itemList"></div>
 </div>
 
-<button id="saveBtn" style="width:100%;margin-top:10px;padding:16px;">Sync Today's Data to Cloud</button>
+<button id="saveBtn" style="width:100%;margin-top:10px;padding:16px;background:var(--accent);color:var(--accent-ink)">Sync Intake Logs to Cloud</button>
 
 <div id="toast"></div>
 
@@ -108,15 +146,14 @@
   const $=id=>document.getElementById(id);
   let cfg = JSON.parse(localStorage.getItem('weight_cfg') || '{}');
   let currentLog = [];
+  let loggedSportKcal = 0;
 
-  // Initialize date setup
   const localToday = new Date().toLocaleDateString('sv').substring(0,10);
   $('datePicker').value = localToday;
 
-  // Load select options
   function initDatabase() {
     FOOD_DATABASE.sort((a,b)=>a.name.localeCompare(b.name));
-    $('foodSelect').innerHTML = FOOD_DATABASE.map(f => `<option value="${f.name}">${f.name} (100g: ${f.kcal} kcal, ${f.carbs}g C)</option>`).join('');
+    $('foodSelect').innerHTML = FOOD_DATABASE.map(f => `<option value="${f.name}">${f.name} (100g: ${f.kcal} kcal)</option>`).join('');
   }
 
   function renderDay() {
@@ -128,21 +165,45 @@
       $('itemList').innerHTML += `
         <div class="item-row">
           <div>
-            <div>${item.name} <span style="color:var(--muted)">(${item.amount}g)</span></div>
+            <div>${item.name} ${item.amount ? `<span style="color:var(--muted)">(${item.amount}g)</span>` : ''}</div>
             <div class="item-meta">${item.kcal} kcal | C: ${item.carbs.toFixed(1)}g | P: ${item.protein.toFixed(1)}g</div>
           </div>
           <button class="del-btn" onclick="removeItem(${idx})">✕</button>
         </div>`;
     });
 
-    $('totalKcal').innerText = Math.round(k);
-    
-    const carbEl = $('totalCarbs');
-    carbEl.innerText = c.toFixed(1) + 'g';
-    if(c > 20) { carbEl.className = "stat-val warn"; } 
-    else { carbEl.className = "stat-val safe"; }
+    if (loggedSportKcal > 0) {
+      $('itemList').innerHTML += `
+        <div class="item-row" style="border-top:1px dashed var(--line)">
+          <div>
+            <div style="color:var(--accent)">🏃 Sport Workout Burn</div>
+            <div class="item-meta">-${loggedSportKcal} Active Energy Expenditure</div>
+          </div>
+          <button class="del-btn" onclick="removeSport()">✕</button>
+        </div>`;
+    }
 
+    const netKcal = Math.round(k - loggedSportKcal);
+    $('totalKcal').innerText = netKcal + ' kcal';
+    $('totalCarbs').innerText = c.toFixed(1) + 'g';
     $('totalProtein').innerText = p.toFixed(1) + 'g';
+
+    // Render Keto Gauge
+    const targetLimit = 20;
+    const percentage = Math.min((c / targetLimit) * 100, 100);
+    const fill = $('gaugeFill');
+    fill.style.width = percentage + '%';
+    
+    $('gaugeValue').innerText = `${c.toFixed(1)} / ${targetLimit}g Limit`;
+    if (c > targetLimit) {
+      fill.style.backgroundColor = 'var(--hi)';
+      $('gaugeStatus').innerText = "Keto Alert: Out of Ketosis!";
+      $('gaugeStatus').style.color = 'var(--hi)';
+    } else {
+      fill.style.backgroundColor = 'var(--good)';
+      $('gaugeStatus').innerText = "Safe: Ketosis Maintained";
+      $('gaugeStatus').style.color = 'var(--good)';
+    }
   }
 
   $('addBtn').onclick = () => {
@@ -163,29 +224,64 @@
     });
 
     $('foodAmount').value = '';
-    renderDay();
-    saveLocalCache();
+    saveAndRefresh();
   };
 
-  window.removeItem = (idx) => {
-    currentLog.splice(idx, 1);
-    renderDay();
-    saveLocalCache();
+  $('manualAddBtn').onclick = () => {
+    const name = $('manualName').value.trim() || 'Manual Quick Entry';
+    const kcal = Math.round(parseFloat($('manualKcal').value) || 0);
+    const carbs = Math.round((parseFloat($('manualCarbs').value) || 0) * 10) / 10;
+    const protein = Math.round((parseFloat($('manualProtein').value) || 0) * 10) / 10;
+
+    currentLog.push({ name, amount: null, kcal, carbs, protein });
+    
+    $('manualName').value = '';
+    $('manualKcal').value = '';
+    $('manualCarbs').value = '';
+    $('manualProtein').value = '';
+    saveAndRefresh();
   };
 
-  function saveLocalCache() {
+  $('sportSaveBtn').onclick = async () => {
+    const burn = Math.round(parseFloat($('sportKcal').value) || 0);
+    if (burn <= 0) return;
+    
+    loggedSportKcal = burn;
+    $('sportKcal').value = '';
+    localStorage.setItem(`sport_${$('datePicker').value}`, loggedSportKcal);
+    renderDay();
+
+    if(cfg.url && cfg.token) {
+      try {
+        await fetch(cfg.url, {
+          method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            token: cfg.token, action: 'add', table: 'sport',
+            date: $('datePicker').value, kcal: burn, note: 'Watch Activity Tracker'
+          })
+        });
+        toast('Sport sync success!');
+      } catch(e){}
+    }
+  };
+
+  window.removeItem = (idx) => { currentLog.splice(idx, 1); saveAndRefresh(); };
+  window.removeSport = () => { loggedSportKcal = 0; localStorage.removeItem(`sport_${$('datePicker').value}`); renderDay(); };
+
+  function saveAndRefresh() {
     const d = $('datePicker').value;
     localStorage.setItem(`intake_${d}`, JSON.stringify(currentLog));
+    renderDay();
   }
 
   function loadLocalCache() {
     const d = $('datePicker').value;
     currentLog = JSON.parse(localStorage.getItem(`intake_${d}`) || '[]');
+    loggedSportKcal = parseFloat(localStorage.getItem(`sport_${d}`) || '0');
     renderDay();
   }
 
   $('datePicker').onchange = loadLocalCache;
-
   function toast(msg, err=false) {
     const t = $('toast'); t.innerText = msg;
     t.style.borderColor = err ? 'var(--hi)' : 'var(--good)';
@@ -193,44 +289,25 @@
   }
 
   $('saveBtn').onclick = async () => {
-    if(!cfg.url || !cfg.token) {
-      toast('Setup URL/Token configuration in Settings (⚙) first.', true);
-      return;
-    }
+    if(!cfg.url || !cfg.token) { toast('Set URL/Token configuration in Settings (⚙) first.', true); return; }
     $('saveBtn').disabled = true;
     
     let kcal = 0, carbs = 0, protein = 0;
     currentLog.forEach(i => { kcal += i.kcal; carbs += i.carbs; protein += i.protein; });
 
-    const payload = {
-      token: cfg.token,
-      action: 'add',
-      table: 'intake',
-      date: $('datePicker').value,
-      kcal: kcal,
-      carbs_g: carbs,
-      protein_g: protein,
-      items_json: JSON.stringify(currentLog)
-    };
-
     try {
       const res = await fetch(cfg.url, {
-        method: 'POST',
-        mode: 'cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload)
+        method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          token: cfg.token, action: 'add', table: 'intake', date: $('datePicker').value,
+          kcal: kcal, carbs_g: carbs, protein_g: protein, items_json: JSON.stringify(currentLog)
+        })
       });
       const data = await res.json();
-      if(data.ok) {
-        toast('Synced to Sheet safely!');
-      } else {
-        toast('Error: ' + data.error, true);
-      }
-    } catch(e) {
-      toast('Saved offline locally.', true);
-    } finally {
-      $('saveBtn').disabled = false;
-    }
+      if(data.ok) toast('Synced directly to Cloud!');
+      else toast('Error: ' + data.error, true);
+    } catch(e) { toast('Saved offline locally.', true); }
+    finally { $('saveBtn').disabled = false; }
   };
 
   initDatabase();
