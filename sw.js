@@ -1,6 +1,6 @@
-const CACHE='gewicht-v2';
-const SHELL=['index.html','analysis.html','manifest.json',
-  'icon-180.png','icon-192.png','icon-512.png'];
+const CACHE='gewicht-v3';
+const SHELL=['index.html','analysis.html','calories.html','calories-analysis.html',
+  'foods.js','manifest.json','icon-180.png','icon-192.png','icon-512.png'];
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -12,15 +12,11 @@ self.addEventListener('activate',e=>{
 });
 self.addEventListener('fetch',e=>{
   const url=e.request.url;
-  // never cache the Apps Script API calls — always go to network
-  if(url.includes('script.google.com')||url.includes('googleusercontent')){
-    return; // default network handling
-  }
-  // app shell: cache-first, fall back to network
+  if(url.includes('script.google.com')||url.includes('googleusercontent')){return}
   e.respondWith(
     caches.match(e.request).then(r=>r||fetch(e.request).then(resp=>{
       const copy=resp.clone();
-      caches.open(CACHE).then(c=>{try{c.put(e.request,copy)}catch(_){}}); 
+      caches.open(CACHE).then(c=>{try{c.put(e.request,copy)}catch(_){}});
       return resp;
     }).catch(()=>r))
   );
