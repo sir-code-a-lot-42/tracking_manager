@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#101216">
+<title>Simulation & Analysis</title>
+<style>
+  :root{
+    --bg:#101216; --panel:#191c22; --panel-2:#20242c; --line:#2c313b;
+    --ink:#f3f5f8; --muted:#8a92a0; --faint:#5a616d;
+    --accent:#2b8fff; --good:#3ec98a; --hi:#e7563f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);padding:20px;font-family:-apple-system,sans-serif;padding-bottom:60px}
+  .nav-tabs{display:flex;gap:10px;margin-bottom:20px}
+  .nav-tabs a{color:var(--muted);text-decoration:none;padding:8px 16px;background:var(--panel);border-radius:8px;font-size:14px}
+  .nav-tabs a.active{background:var(--accent);color:#04203f;font-weight:bold}
+  .panel{background:var(--panel);border-radius:16px;padding:16px;margin-bottom:20px;border:1px solid var(--line)}
+  h3{margin-bottom:12px;font-size:16px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+  th, td{padding:10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:normal}
+  .good{color:var(--good)} .warn{color:var(--hi)}
+</style>
+</head>
+<body>
+
+<h2>Performance Engine</h2>
+<div style="margin-bottom:20px;font-size:13px;color:var(--muted)">40-Day Mathematical Projection Model</div>
+
+<div class="nav-tabs">
+  <a href="calories.html">Log Meals</a>
+  <a href="calories-analysis.html" class="active">Simulation & Analysis</a>
+</div>
+
+<div class="panel">
+  <h3>Projected Engine Results (40-day target)</h3>
+  <table id="summaryTable">
+    <tr><td>Baseline Intake Target</td><td id="baseKcal" style="text-align:right;font-weight:bold">2500 kcal</td></tr>
+    <tr><td>Est. Total Deficit Weight-Loss</td><td id="estLoss" class="good" style="text-align:right;font-weight:bold">0.00 kg</td></tr>
+    <tr><td>Corrected Fluid/Tissue Loss</td><td id="corrLoss" class="good" style="text-align:right;font-weight:bold">0.00 kg</td></tr>
+  </table>
+</div>
+
+<div class="panel">
+  <h3>Daily Trend Simulator Run</h3>
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Day</th>
+          <th>Log/Est.</th>
+          <th>Deficit</th>
+          <th>Fat Δ (kg)</th>
+          <th>Sim Weight</th>
+        </tr>
+      </thead>
+      <tbody id="simBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const $=id=>document.getElementById(id);
+  
+  // Base configuration fallbacks pulled from your custom profile values
+  let cfg = JSON.parse(localStorage.getItem('weight_cfg') || '{}');
+  const BASE_METABOLISM = parseFloat(cfg.base) || 2500; 
+  $('baseKcal').innerText = BASE_METABOLISM + ' kcal';
+
+  function runSimulation() {
+    const simBody = $('simBody');
+    simBody.innerHTML = '';
+
+    // Track state baseline metrics
+    let currentSimWeight = 94.6; 
+    let currentCorrWeight = 94.6;
+    let totalFatLoss = 0;
+
+    const today = new Date();
+    
+    for (let day = 1; day <= 40; day++) {
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() + (day - 1));
+      const dateString = targetDate.toLocaleDateString('sv').substring(0,10);
+      
+      // Look up localized intake logs or fall back to an assumed baseline value of 500 kcal
+      const localLog = JSON.parse(localStorage.getItem(`intake_${dateString}`) || 'null');
+      let consumed = 500; 
+      let label = " (Est.)";
+
+      if (localLog && localLog.length > 0) {
+        consumed = localLog.reduce((acc, curr) => acc + curr.kcal, 0);
+        label = " (Logged)";
+      } else if (day === 1) {
+        consumed = 1000; // Aligns with historical starting patterns
+        label = " (Start)";
+      }
+
+      // Calculations derived from Excel structures: 7000 kcal = 1kg tissue mass adjustment
+      const difference = BASE_METABOLISM - consumed;
+      const fatReductionKg = difference / 7000;
+      totalFatLoss += fatReductionKg;
+
+      currentSimWeight -= fatReductionKg;
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${dateString}</td>
+        <td>${consumed} kcal${label}</td>
+        <td class="${difference >= 0 ? 'good' : 'warn'}">${difference >= 0 ? '+' : ''}${difference}</td>
+        <td>${fatReductionKg.toFixed(3)} kg</td>
+        <td style="font-weight:bold">${currentSimWeight.toFixed(2)} kg</td>
+      `;
+      simBody.appendChild(row);
+    }
+
+    // Mathematical adjustments mapping directly to the spreadsheet matrix engines
+    $('estLoss').innerText = `-${totalFatLoss.toFixed(2)} kg`;
+    $('corrLoss').innerText = `-${(totalFatLoss * 1.035).toFixed(2)} kg`;
+  }
+
+  runSimulation();
+</script>
+</body>
+</html>
