@@ -1,74 +1,69 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0f1115">
-<title>Verlauf &amp; Analyse</title>
+<meta name="theme-color" content="#101216">
+<title>History &amp; Analysis</title>
 <style>
   :root{
-    --bg:#0f1115; --panel:#171a21; --panel-2:#1e222c; --line:#2a2f3a;
-    --ink:#f4f6fb; --muted:#8b93a7; --accent:#5ee0a0; --accent-dim:#2f7a57;
-    --warn:#f0a868; --danger:#e2706b; --blue:#7aa2f7;
-    --shadow:0 18px 50px -20px rgba(0,0,0,.7);
+    --bg:#101216; --panel:#191c22; --panel-2:#20242c; --line:#2c313b;
+    --ink:#f3f5f8; --muted:#8a92a0; --faint:#5a616d;
+    --accent:#2b8fff; --accent-ink:#04203f;
+    --good:#3ec98a; --mid:#f0a83c; --hi:#e7563f;
+    --shadow:0 16px 44px -24px rgba(0,0,0,.8);
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  body{
-    background:radial-gradient(120% 80% at 50% -10%, #1a2030 0%, var(--bg) 55%);
-    color:var(--ink);min-height:100dvh;
+  body{background:var(--bg);color:var(--ink);min-height:100dvh;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',Roboto,sans-serif;
-    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  }
-  .wrap{max-width:520px;margin:0 auto;padding:20px 18px 40px}
-  header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
-  .back{background:var(--panel);border:1px solid var(--line);color:var(--ink);
-    width:40px;height:40px;border-radius:12px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none}
-  header h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
+    -webkit-font-smoothing:antialiased;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .device{max-width:430px;margin:0 auto;padding:18px 14px 40px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding:4px}
+  .back{background:var(--panel);border:1px solid var(--line);color:var(--ink);width:38px;height:38px;
+    border-radius:11px;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none}
+  header h1{font-size:17px;font-weight:700;letter-spacing:-.01em}
 
-  .card{background:linear-gradient(160deg,var(--panel),var(--panel-2));border:1px solid var(--line);
-    border-radius:20px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
-  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:16px;font-weight:600}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px;margin-bottom:11px}
+  .card-h{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin-bottom:14px}
 
-  .big{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-  .metric{background:linear-gradient(160deg,var(--panel),var(--panel-2));border:1px solid var(--line);
-    border-radius:18px;padding:18px 16px}
-  .metric .v{font-size:30px;font-weight:750;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-  .metric .v small{font-size:14px;color:var(--muted);font-weight:600}
-  .metric .k{font-size:12px;color:var(--muted);margin-top:4px}
-  .metric .sub{font-size:12px;margin-top:8px;color:var(--muted)}
-  .down{color:var(--accent)} .up{color:var(--warn)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 15px}
+  .tile .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .tile .v small{font-size:12px;color:var(--muted);font-weight:600}
+  .tile .v.down{color:var(--good)} .tile .v.up{color:var(--mid)}
+  .tile .k{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.09em;margin-top:5px}
+  .tile .sub{font-size:11px;color:var(--muted);margin-top:6px}
 
-  svg{width:100%;display:block;overflow:visible}
-  .legend{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
-  .legend span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-  .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+  svg.chart{width:100%;display:block;overflow:visible}
+  .legend{display:flex;gap:14px;margin-top:12px;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+  .legend i{width:13px;height:3px;border-radius:2px;display:inline-block}
 
-  .goals{display:flex;flex-direction:column;gap:14px}
-  .goal{display:flex;align-items:center;gap:14px}
-  .goal .ring{position:relative;width:52px;height:52px;flex:none}
-  .goal .ring svg{width:52px;height:52px}
-  .goal .ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+  .goal{display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--line)}
+  .goal:first-of-type{border-top:none}
+  .goal .ring{position:relative;width:48px;height:48px;flex:none}
+  .goal .ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
   .goal .info{flex:1}
   .goal .info .t{font-weight:700;font-size:15px}
   .goal .info .d{font-size:12px;color:var(--muted);margin-top:2px}
-  .goal.done .info .t{color:var(--accent)}
+  .goal.done .info .t{color:var(--good)}
 
-  .bmi-scale{height:12px;border-radius:6px;margin:14px 0 8px;position:relative;
-    background:linear-gradient(90deg,#7aa2f7 0%,#5ee0a0 28%,#5ee0a0 50%,#f0a868 72%,#e2706b 100%)}
-  .bmi-marker{position:absolute;top:-5px;width:3px;height:22px;background:#fff;border-radius:2px;box-shadow:0 0 6px rgba(0,0,0,.6)}
-  .bmi-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+  .zone{height:8px;border-radius:4px;margin:12px 0 7px;position:relative;
+    background:linear-gradient(90deg,var(--accent) 0%,var(--good) 30%,var(--good) 48%,var(--mid) 70%,var(--hi) 100%)}
+  .zone .mk{position:absolute;top:-4px;width:3px;height:16px;background:#fff;border-radius:2px;box-shadow:0 0 5px rgba(0,0,0,.6)}
+  .zlab{display:flex;justify-content:space-between;font-size:10px;color:var(--faint)}
 
-  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:14px;line-height:1.6}
-  .note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:12px}
+  .note{font-size:11px;color:var(--faint);line-height:1.55;margin-top:12px}
+  .empty{text-align:center;color:var(--muted);padding:34px 10px;font-size:14px;line-height:1.7}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="device">
   <header>
     <a class="back" href="index.html">←</a>
-    <h1>Verlauf &amp; Analyse</h1>
+    <h1>History &amp; Analysis</h1>
   </header>
-
   <div id="content"></div>
 </div>
 
@@ -77,162 +72,110 @@ const DATA_KEY='wt_cache_v1';const CFG_KEY='wt_cfg_v1';
 let rows=[];try{rows=JSON.parse(localStorage.getItem(DATA_KEY))||[]}catch(e){}
 let cfg={};try{cfg=JSON.parse(localStorage.getItem(CFG_KEY))||{}}catch(e){}
 const HEIGHT=(parseFloat(cfg.height)||168)/100;
-const GOALS=[90,80,69];
-const START=96;
-
+const GOALS=[90,80,69];const START=96;
 const C=document.getElementById('content');
 
-function ewma(data,a=0.12){
-  if(!data.length)return [];let m=data[0].kg;const out=[];
-  for(const r of data){m=a*r.kg+(1-a)*m;out.push({date:r.date,kg:r.kg,trend:m,t:new Date(r.date).getTime()})}
-  return out;
-}
-// linear regression on the recent trend (last N points) -> slope kg/day
-function regression(t){
-  const N=Math.min(t.length,21);const pts=t.slice(-N);
-  if(pts.length<2)return null;
-  const x0=pts[0].t;
-  let sx=0,sy=0,sxy=0,sxx=0,n=pts.length;
-  for(const p of pts){const x=(p.t-x0)/86400000;const y=p.trend;sx+=x;sy+=y;sxy+=x*y;sxx+=x*x}
-  const slope=(n*sxy-sx*sy)/(n*sxx-sx*sx);
-  const intercept=(sy-slope*sx)/n;
-  return {slope,intercept,x0,lastT:pts[pts.length-1].t};
-}
-function fmtDate(ts){
-  const d=new Date(ts);return d.toLocaleDateString('de-AT',{day:'2-digit',month:'short',year:'numeric'});
-}
+function ewma(data,a=0.12){if(!data.length)return [];let m=data[0].kg;const out=[];
+  for(const r of data){m=a*r.kg+(1-a)*m;out.push({date:r.date,kg:r.kg,trend:m,t:new Date(r.date).getTime()})}return out}
+function regression(t){const N=Math.min(t.length,21);const pts=t.slice(-N);if(pts.length<2)return null;
+  const x0=pts[0].t;let sx=0,sy=0,sxy=0,sxx=0,n=pts.length;
+  for(const p of pts){const x=(p.t-x0)/86400000,y=p.trend;sx+=x;sy+=y;sxy+=x*y;sxx+=x*x}
+  const slope=(n*sxy-sx*sy)/(n*sxx-sx*sx);return {slope,lastT:pts[n-1].t}}
+function fmtDate(ts){return new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
 
 if(!rows.length){
-  C.innerHTML='<div class="card"><div class="empty">Noch keine Daten.<br>Trag im Tracker dein erstes Gewicht ein,<br>dann erscheint hier die Auswertung.</div></div>';
-}else{
-  render();
-}
+  C.innerHTML='<div class="card"><div class="empty">No data yet.<br>Log your first weight in the tracker,<br>then the analysis appears here.</div></div>';
+}else{render()}
 
 function render(){
-  const t=ewma(rows);
-  const last=t[t.length-1];
-  const reg=regression(t);
-  const lost=START-last.kg;
-  const slope=reg?reg.slope:0; // kg/day (negative = losing)
-  const weekly=slope*7;
-
-  // --- top metrics ---
+  const t=ewma(rows);const last=t[t.length-1];const reg=regression(t);
+  const lost=START-last.kg;const slope=reg?reg.slope:0;const weekly=slope*7;
   let trendCls='',weeklyTxt='—';
-  if(reg){trendCls=weekly<=0?'down':'up';weeklyTxt=(weekly>0?'+':'')+weekly.toFixed(2)+' kg/Wo.'}
+  if(reg){trendCls=weekly<=0?'down':'up';weeklyTxt=(weekly>0?'+':'')+weekly.toFixed(2)}
   const bmi=last.kg/(HEIGHT*HEIGHT);
 
   let html='';
-  html+='<div class="big">';
-  html+=`<div class="metric"><div class="v">${last.kg.toFixed(1)} <small>kg</small></div><div class="k">Aktuelles Gewicht</div><div class="sub down">−${lost.toFixed(1)} kg seit Start</div></div>`;
-  html+=`<div class="metric"><div class="v ${trendCls}">${weeklyTxt}</div><div class="k">Trend (Regression)</div><div class="sub">geglättet, letzte 3 Wo.</div></div>`;
+  html+='<div class="grid2">';
+  html+=`<div class="tile"><div class="v">${last.kg.toFixed(1)} <small>kg</small></div><div class="k">Current</div><div class="sub" style="color:var(--good)">−${lost.toFixed(1)} kg since start</div></div>`;
+  html+=`<div class="tile"><div class="v ${trendCls}">${weeklyTxt} <small>kg/wk</small></div><div class="k">Trend (regression)</div><div class="sub">smoothed, last 3 wks</div></div>`;
   html+='</div>';
 
-  // --- chart ---
-  html+='<div class="card"><h2>Verlauf &amp; Prognose</h2><div id="chart"></div>'+
+  html+='<div class="card"><div class="card-h">History &amp; forecast</div><div id="chart"></div>'+
     '<div class="legend">'+
-    '<span><i style="background:#3a4150"></i>Messung</span>'+
+    '<span><i style="background:#3a4150"></i>Measured</span>'+
     '<span><i style="background:var(--accent)"></i>Trend (EWMA)</span>'+
-    '<span><i style="background:var(--blue)"></i>Prognose</span>'+
-    '</span></div></div>';
+    '<span><i style="background:var(--good)"></i>Forecast</span>'+
+    '</div></div>';
 
-  // --- goals ---
-  html+='<div class="card"><h2>Ziele</h2><div class="goals">';
+  html+='<div class="card"><div class="card-h">Goals</div>';
   for(const g of GOALS){
-    const totalSpan=START-g;
-    const prog=Math.max(0,Math.min(1,(START-last.kg)/totalSpan));
-    const reached=last.kg<=g;
-    let eta='—';
-    if(reached)eta='Erreicht 🎉';
-    else if(reg&&slope<-0.0001){
-      const daysNeeded=(g-last.trend)/slope; // both relative; slope<0
-      if(daysNeeded>0&&daysNeeded<3650){const etaTs=last.t+daysNeeded*86400000;eta='≈ '+fmtDate(etaTs)}
-      else eta='nicht absehbar';
-    }else if(reg){eta='Trend zu flach';}
-    const pct=Math.round(prog*100);
-    const circ=2*Math.PI*22;const off=circ*(1-prog);
+    const span=START-g;const prog=Math.max(0,Math.min(1,(START-last.kg)/span));
+    const reached=last.kg<=g;let eta='—';
+    if(reached)eta='Reached ✓';
+    else if(reg&&slope<-0.0001){const days=(g-last.trend)/slope;
+      if(days>0&&days<3650)eta='≈ '+fmtDate(last.t+days*86400000);else eta='not in range'}
+    else if(reg)eta='trend too flat';
+    const pct=Math.round(prog*100);const circ=2*Math.PI*20;const off=circ*(1-prog);
     html+=`<div class="goal ${reached?'done':''}">
-      <div class="ring">
-        <svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="22" fill="none" stroke="#2a2f3a" stroke-width="5"/>
-        <circle cx="26" cy="26" r="22" fill="none" stroke="${reached?'var(--accent)':'var(--blue)'}" stroke-width="5"
-          stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" stroke-linecap="round" transform="rotate(-90 26 26)"/></svg>
-        <div class="pct">${pct}%</div>
-      </div>
-      <div class="info"><div class="t">${g} kg</div><div class="d">${eta}</div></div>
-    </div>`;
+      <div class="ring"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="#2c313b" stroke-width="5"/>
+        <circle cx="24" cy="24" r="20" fill="none" stroke="${reached?'var(--good)':'var(--accent)'}" stroke-width="5"
+          stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" stroke-linecap="round" transform="rotate(-90 24 24)"/></svg>
+        <div class="pct">${pct}%</div></div>
+      <div class="info"><div class="t">${g} kg</div><div class="d">${eta}</div></div></div>`;
   }
-  html+='</div><div class="note">Prognose = lineare Regression auf den geglätteten Trend der letzten 3 Wochen. Gewichtsverlust verläuft selten linear — weiter entfernte Ziele (69 kg) sind grobe Schätzungen und verschieben sich, wenn der Trend abflacht.</div></div>';
+  html+='<div class="note">Forecast = linear regression on the smoothed trend of the last 3 weeks. Weight loss is rarely linear, so distant goals (69 kg) are rough estimates and shift as the trend flattens.</div></div>';
 
-  // --- BMI ---
-  const bmiPct=Math.max(0,Math.min(100,((bmi-15)/(35-15))*100));
-  let bmiCat='';
-  if(bmi<18.5)bmiCat='Untergewicht';else if(bmi<25)bmiCat='Normalgewicht';
-  else if(bmi<30)bmiCat='Übergewicht';else bmiCat='Adipositas';
-  html+=`<div class="card"><h2>BMI</h2>
-    <div class="metric" style="background:none;border:none;padding:0">
-      <div class="v">${bmi.toFixed(1)} <small>· ${bmiCat}</small></div>
-    </div>
-    <div class="bmi-scale"><div class="bmi-marker" style="left:calc(${bmiPct}% - 1.5px)"></div></div>
-    <div class="bmi-labels"><span>15</span><span>18,5</span><span>25</span><span>30</span><span>35</span></div>
-    <div class="note">Bei 168 cm: Normalgewicht ab ca. 70,6 kg. Dein 69-kg-Ziel entspricht BMI 24,4.</div>
-  </div>`;
+  const bmiPct=Math.max(0,Math.min(100,((bmi-15)/(40-15))*100));
+  let bmiCat,col;
+  if(bmi<18.5){bmiCat='Underweight';col='var(--accent)'}
+  else if(bmi<25){bmiCat='Normal';col='var(--good)'}
+  else if(bmi<30){bmiCat='Overweight';col='var(--mid)'}
+  else{bmiCat='Obese';col='var(--hi)'}
+  html+=`<div class="card"><div class="card-h">BMI · ${Math.round(HEIGHT*100)} cm</div>
+    <div style="display:flex;align-items:baseline;gap:8px">
+      <span style="font-size:30px;font-weight:700;font-variant-numeric:tabular-nums">${bmi.toFixed(1)}</span>
+      <span style="font-size:13px;font-weight:700;color:${col}">${bmiCat}</span></div>
+    <div class="zone"><div class="mk" style="left:calc(${bmiPct}% - 1.5px)"></div></div>
+    <div class="zlab"><span>15</span><span>18.5</span><span>25</span><span>30</span><span>40</span></div>
+    <div class="note">At ${Math.round(HEIGHT*100)} cm, normal weight starts ≈ ${(24.999*HEIGHT*HEIGHT).toFixed(1)} kg. Your 69 kg goal is BMI 24.4.</div></div>`;
 
   C.innerHTML=html;
   drawChart(t,reg);
 }
 
 function drawChart(t,reg){
-  const W=480,H=240,padL=34,padR=14,padT=14,padB=26;
-  const data=t.slice();
-  // build projection points to first unreached goal or +60 days
-  let projPts=[];
+  const W=400,H=210,padL=30,padR=12,padT=12,padB=24;
+  const data=t.slice();let projPts=[];
   if(reg&&reg.slope<0){
-    const lastT=data[data.length-1].t;const lastTrend=data[data.length-1].trend;
+    const lastT=data[data.length-1].t,lastTrend=data[data.length-1].trend;
     const target=GOALS.find(g=>g<lastTrend)||GOALS[GOALS.length-1];
     const days=Math.min(120,Math.max(14,(target-lastTrend)/reg.slope));
-    for(let d=0;d<=days;d+=Math.max(1,Math.round(days/30))){
-      projPts.push({t:lastT+d*86400000,kg:lastTrend+reg.slope*d});
-    }
+    for(let d=0;d<=days;d+=Math.max(1,Math.round(days/30)))projPts.push({t:lastT+d*86400000,kg:lastTrend+reg.slope*d});
   }
   const allT=data.map(d=>d.t).concat(projPts.map(p=>p.t));
   const allK=data.map(d=>d.kg).concat(data.map(d=>d.trend)).concat(projPts.map(p=>p.kg));
-  let minT=Math.min(...allT),maxT=Math.max(...allT);
+  let minT=Math.min(...allT),maxT=Math.max(...allT);if(minT===maxT)maxT=minT+86400000;
   let minK=Math.min(...allK,69),maxK=Math.max(...allK);
-  if(minT===maxT)maxT=minT+86400000;
   const padK=(maxK-minK)*0.12||1;minK-=padK;maxK+=padK;
-  const X=t=>padL+( (t-minT)/(maxT-minT) )*(W-padL-padR);
+  const X=v=>padL+((v-minT)/(maxT-minT))*(W-padL-padR);
   const Y=k=>padT+(1-(k-minK)/(maxK-minK))*(H-padT-padB);
-
-  let svg=`<svg viewBox="0 0 ${W} ${H}">`;
-  // goal lines
-  for(const g of GOALS){
-    if(g<minK||g>maxK)continue;
-    svg+=`<line x1="${padL}" y1="${Y(g).toFixed(1)}" x2="${W-padR}" y2="${Y(g).toFixed(1)}" stroke="#2a2f3a" stroke-width="1" stroke-dasharray="3 4"/>`;
-    svg+=`<text x="${W-padR}" y="${(Y(g)-4).toFixed(1)}" fill="#5b6478" font-size="9" text-anchor="end">${g} kg</text>`;
-  }
-  // y labels
-  for(let i=0;i<=3;i++){
-    const k=minK+(maxK-minK)*i/3;const y=Y(k);
-    svg+=`<text x="4" y="${(y+3).toFixed(1)}" fill="#5b6478" font-size="9">${k.toFixed(0)}</text>`;
-  }
-  // projection
-  if(projPts.length){
-    let p='M'+X(projPts[0].t).toFixed(1)+' '+Y(projPts[0].kg).toFixed(1);
+  let svg=`<svg class="chart" viewBox="0 0 ${W} ${H}">`;
+  for(const g of GOALS){if(g<minK||g>maxK)continue;
+    svg+=`<line x1="${padL}" y1="${Y(g).toFixed(1)}" x2="${W-padR}" y2="${Y(g).toFixed(1)}" stroke="#2c313b" stroke-width="1" stroke-dasharray="3 4"/>`;
+    svg+=`<text x="${W-padR}" y="${(Y(g)-4).toFixed(1)}" fill="#5a616d" font-size="9" text-anchor="end">${g}</text>`}
+  for(let i=0;i<=3;i++){const k=minK+(maxK-minK)*i/3;svg+=`<text x="3" y="${(Y(k)+3).toFixed(1)}" fill="#5a616d" font-size="9">${k.toFixed(0)}</text>`}
+  if(projPts.length){let p='M'+X(projPts[0].t).toFixed(1)+' '+Y(projPts[0].kg).toFixed(1);
     for(const pt of projPts.slice(1))p+=' L'+X(pt.t).toFixed(1)+' '+Y(pt.kg).toFixed(1);
-    svg+=`<path d="${p}" fill="none" stroke="#7aa2f7" stroke-width="2" stroke-dasharray="2 4" opacity=".9"/>`;
-  }
-  // raw measurement dots + faint line
+    svg+=`<path d="${p}" fill="none" stroke="#3ec98a" stroke-width="2" stroke-dasharray="2 4"/>`}
   let raw='M'+X(data[0].t).toFixed(1)+' '+Y(data[0].kg).toFixed(1);
   for(const d of data.slice(1))raw+=' L'+X(d.t).toFixed(1)+' '+Y(d.kg).toFixed(1);
   svg+=`<path d="${raw}" fill="none" stroke="#3a4150" stroke-width="1.5"/>`;
-  // trend line
   let tr='M'+X(data[0].t).toFixed(1)+' '+Y(data[0].trend).toFixed(1);
   for(const d of data.slice(1))tr+=' L'+X(d.t).toFixed(1)+' '+Y(d.trend).toFixed(1);
-  svg+=`<path d="${tr}" fill="none" stroke="#5ee0a0" stroke-width="2.5" stroke-linejoin="round"/>`;
-  // dots
-  for(const d of data)svg+=`<circle cx="${X(d.t).toFixed(1)}" cy="${Y(d.kg).toFixed(1)}" r="2.4" fill="#5b6478"/>`;
-  // last point emphasised
+  svg+=`<path d="${tr}" fill="none" stroke="#2b8fff" stroke-width="2.5" stroke-linejoin="round"/>`;
+  for(const d of data)svg+=`<circle cx="${X(d.t).toFixed(1)}" cy="${Y(d.kg).toFixed(1)}" r="2.2" fill="#5a616d"/>`;
   const ld=data[data.length-1];
-  svg+=`<circle cx="${X(ld.t).toFixed(1)}" cy="${Y(ld.trend).toFixed(1)}" r="4" fill="#5ee0a0" stroke="#0f1115" stroke-width="2"/>`;
+  svg+=`<circle cx="${X(ld.t).toFixed(1)}" cy="${Y(ld.trend).toFixed(1)}" r="4" fill="#2b8fff" stroke="#101216" stroke-width="2"/>`;
   svg+='</svg>';
   document.getElementById('chart').innerHTML=svg;
 }
