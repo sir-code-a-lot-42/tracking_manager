@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#101216">
+<title>Calorie & Keto Tracker</title>
+<style>
+  :root{
+    --bg:#101216; --panel:#191c22; --panel-2:#20242c; --line:#2c313b;
+    --ink:#f3f5f8; --muted:#8a92a0; --faint:#5a616d;
+    --accent:#2b8fff; --accent-ink:#04203f;
+    --good:#3ec98a; --mid:#f0a83c; --hi:#e7563f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--ink);min-height:100dvh;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    padding:20px;padding-bottom:80px}
+  .header{display:flex;justify-content:between;align-items:center;margin-bottom:20px}
+  .nav-tabs{display:flex;gap:10px;margin-bottom:20px}
+  .nav-tabs a{color:var(--muted);text-decoration:none;padding:8px 16px;background:var(--panel);border-radius:8px;font-size:14px}
+  .nav-tabs a.active{background:var(--accent);color:var(--accent-ink);font-weight:bold}
+  
+  .grid-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+  .stat-card{background:var(--panel);padding:12px;border-radius:12px;text-align:center;border:1px solid var(--line)}
+  .stat-val{font-size:20px;font-weight:bold;margin-top:4px}
+  .warn{color:var(--hi) !important}
+  .safe{color:var(--good) !important}
+
+  .panel{background:var(--panel);border-radius:16px;padding:16px;margin-bottom:20px;border:1px solid var(--line)}
+  h3{margin-bottom:12px;font-size:16px;color:var(--muted)}
+  
+  .form-group{margin-bottom:12px;display:flex;gap:8px}
+  select, input, button{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    padding:12px;border-radius:8px;font-size:15px;outline:none;width:100%}
+  button{background:var(--accent);color:var(--accent-ink);font-weight:bold;cursor:pointer;border:none}
+  button:disabled{opacity:0.4}
+
+  .item-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+  .item-row:last-child{border:none}
+  .item-meta{font-size:12px;color:var(--muted)}
+  .del-btn{background:transparent;color:var(--hi);width:auto;padding:4px 8px;font-size:12px}
+  
+  .footer-nav{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);
+    display:flex;justify-content:space-around;padding:10px env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
+  .footer-nav a{color:var(--muted);text-decoration:none;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .footer-nav a.active{color:var(--accent)}
+  #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--panel-2);
+    padding:10px 20px;border-radius:20px;border:1px solid var(--line);font-size:14px;opacity:0;transition:opacity 0.2s;pointer-events:none}
+  #toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>Intake Tracker</h2>
+  <input type="date" id="datePicker" style="width:auto;padding:6px 10px;">
+</div>
+
+<div class="nav-tabs">
+  <a href="calories.html" class="active">Log Meals</a>
+  <a href="calories-analysis.html">Simulation & Analysis</a>
+</div>
+
+<div class="grid-stats">
+  <div class="stat-card">
+    <div style="font-size:11px;color:var(--muted)">Energy (kcal)</div>
+    <div class="stat-val" id="totalKcal">0</div>
+  </div>
+  <div class="stat-card">
+    <div style="font-size:11px;color:var(--muted)">Carbs (Limit 20g)</div>
+    <div class="stat-val" id="totalCarbs">0g</div>
+  </div>
+  <div class="stat-card">
+    <div style="font-size:11px;color:var(--muted)">Protein</div>
+    <div class="stat-val" id="totalProtein">0g</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Add Food Item</h3>
+  <div class="form-group">
+    <select id="foodSelect"></select>
+  </div>
+  <div class="form-group">
+    <input type="number" id="foodAmount" placeholder="Amount in grams (g)" min="1">
+    <button id="addBtn" style="width:30%">Add</button>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Today's Logged Items</h3>
+  <div id="itemList"></div>
+</div>
+
+<button id="saveBtn" style="width:100%;margin-top:10px;padding:16px;">Sync Today's Data to Cloud</button>
+
+<div id="toast"></div>
+
+<div class="footer-nav">
+  <a href="index.html">⚖️ Weight</a>
+  <a href="analysis.html">📈 Analysis</a>
+  <a href="calories.html" class="active">🔥 Calories</a>
+</div>
+
+<script src="foods.js"></script>
+<script>
+  const $=id=>document.getElementById(id);
+  let cfg = JSON.parse(localStorage.getItem('weight_cfg') || '{}');
+  let currentLog = [];
+
+  // Initialize date setup
+  const localToday = new Date().toLocaleDateString('sv').substring(0,10);
+  $('datePicker').value = localToday;
+
+  // Load select options
+  function initDatabase() {
+    FOOD_DATABASE.sort((a,b)=>a.name.localeCompare(b.name));
+    $('foodSelect').innerHTML = FOOD_DATABASE.map(f => `<option value="${f.name}">${f.name} (100g: ${f.kcal} kcal, ${f.carbs}g C)</option>`).join('');
+  }
+
+  function renderDay() {
+    $('itemList').innerHTML = '';
+    let k = 0, c = 0, p = 0;
+    
+    currentLog.forEach((item, idx) => {
+      k += item.kcal; c += item.carbs; p += item.protein;
+      $('itemList').innerHTML += `
+        <div class="item-row">
+          <div>
+            <div>${item.name} <span style="color:var(--muted)">(${item.amount}g)</span></div>
+            <div class="item-meta">${item.kcal} kcal | C: ${item.carbs.toFixed(1)}g | P: ${item.protein.toFixed(1)}g</div>
+          </div>
+          <button class="del-btn" onclick="removeItem(${idx})">✕</button>
+        </div>`;
+    });
+
+    $('totalKcal').innerText = Math.round(k);
+    
+    const carbEl = $('totalCarbs');
+    carbEl.innerText = c.toFixed(1) + 'g';
+    if(c > 20) { carbEl.className = "stat-val warn"; } 
+    else { carbEl.className = "stat-val safe"; }
+
+    $('totalProtein').innerText = p.toFixed(1) + 'g';
+  }
+
+  $('addBtn').onclick = () => {
+    const name = $('foodSelect').value;
+    const amount = parseFloat($('foodAmount').value);
+    if(!amount || amount <= 0) return;
+
+    const base = FOOD_DATABASE.find(f => f.name === name);
+    if(!base) return;
+
+    const factor = amount / 100;
+    currentLog.push({
+      name: base.name,
+      amount: amount,
+      kcal: Math.round(base.kcal * factor),
+      carbs: Math.round((base.carbs * factor) * 10) / 10,
+      protein: Math.round((base.protein * factor) * 10) / 10
+    });
+
+    $('foodAmount').value = '';
+    renderDay();
+    saveLocalCache();
+  };
+
+  window.removeItem = (idx) => {
+    currentLog.splice(idx, 1);
+    renderDay();
+    saveLocalCache();
+  };
+
+  function saveLocalCache() {
+    const d = $('datePicker').value;
+    localStorage.setItem(`intake_${d}`, JSON.stringify(currentLog));
+  }
+
+  function loadLocalCache() {
+    const d = $('datePicker').value;
+    currentLog = JSON.parse(localStorage.getItem(`intake_${d}`) || '[]');
+    renderDay();
+  }
+
+  $('datePicker').onchange = loadLocalCache;
+
+  function toast(msg, err=false) {
+    const t = $('toast'); t.innerText = msg;
+    t.style.borderColor = err ? 'var(--hi)' : 'var(--good)';
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000);
+  }
+
+  $('saveBtn').onclick = async () => {
+    if(!cfg.url || !cfg.token) {
+      toast('Setup URL/Token configuration in Settings (⚙) first.', true);
+      return;
+    }
+    $('saveBtn').disabled = true;
+    
+    let kcal = 0, carbs = 0, protein = 0;
+    currentLog.forEach(i => { kcal += i.kcal; carbs += i.carbs; protein += i.protein; });
+
+    const payload = {
+      token: cfg.token,
+      action: 'add',
+      table: 'intake',
+      date: $('datePicker').value,
+      kcal: kcal,
+      carbs_g: carbs,
+      protein_g: protein,
+      items_json: JSON.stringify(currentLog)
+    };
+
+    try {
+      const res = await fetch(cfg.url, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if(data.ok) {
+        toast('Synced to Sheet safely!');
+      } else {
+        toast('Error: ' + data.error, true);
+      }
+    } catch(e) {
+      toast('Saved offline locally.', true);
+    } finally {
+      $('saveBtn').disabled = false;
+    }
+  };
+
+  initDatabase();
+  loadLocalCache();
+</script>
+</body>
+</html>
