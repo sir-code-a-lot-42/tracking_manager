@@ -138,7 +138,7 @@
       <button class="today-btn" id="todayBtn">Heute</button>
     </div>
     <div class="kg-input">
-      <input type="number" id="kg" inputmode="decimal" step="0.1" placeholder="—">
+      <input type="text" id="kg" inputmode="decimal" autocomplete="off" placeholder="—">
       <span class="unit">kg</span>
     </div>
     <button class="save" id="save">Speichern</button>
@@ -270,7 +270,7 @@ async function pull(){
 
 async function save(){
   const date=$('date').value||todayStr();
-  const kg=parseFloat($('kg').value);
+  const kg=parseFloat(String($('kg').value).replace(',','.'));
   if(isNaN(kg)){toast('Bitte Gewicht eingeben',true);return}
   $('save').disabled=true;
   // optimistic local update
