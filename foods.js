@@ -1,6 +1,6 @@
-// Food database extracted from Abnehmen.xlsx Kalorenrechner
+// Complete macro-mapped database optimized for Keto Tracking
 const FOOD_DATABASE = [
-  { name: "Brokolli", kcal: 26, carbs: 0, protein: 3.0 },
+  { name: "Brokolli", kcal: 26, carbs: 2.7, protein: 3.0 },
   { name: "Paprika Grün", kcal: 20, carbs: 2.9, protein: 1.0 },
   { name: "Paprika Gelb", kcal: 30, carbs: 5.3, protein: 1.0 },
   { name: "Paprika Rot", kcal: 37, carbs: 6.4, protein: 1.0 },
