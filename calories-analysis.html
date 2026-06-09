@@ -4,12 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#101216">
-<title>Simulation & Analysis</title>
+<title>Simulation Engine</title>
 <style>
   :root{
     --bg:#101216; --panel:#191c22; --panel-2:#20242c; --line:#2c313b;
-    --ink:#f3f5f8; --muted:#8a92a0; --faint:#5a616d;
-    --accent:#2b8fff; --good:#3ec98a; --hi:#e7563f;
+    --ink:#f3f5f8; --muted:#8a92a0; --accent:#2b8fff; --good:#3ec98a; --hi:#e7563f;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--ink);padding:20px;font-family:-apple-system,sans-serif;padding-bottom:60px}
@@ -17,43 +16,50 @@
   .nav-tabs a{color:var(--muted);text-decoration:none;padding:8px 16px;background:var(--panel);border-radius:8px;font-size:14px}
   .nav-tabs a.active{background:var(--accent);color:#04203f;font-weight:bold}
   .panel{background:var(--panel);border-radius:16px;padding:16px;margin-bottom:20px;border:1px solid var(--line)}
-  h3{margin-bottom:12px;font-size:16px;color:var(--muted)}
+  h3{margin-bottom:12px;font-size:14px;color:var(--muted);text-transform:uppercase}
   table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
   th, td{padding:10px;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:normal}
   .good{color:var(--good)} .warn{color:var(--hi)}
+  .milestone-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .m-card{background:var(--panel-2);padding:10px;border-radius:8px;border:1px solid var(--line)}
 </style>
 </head>
 <body>
 
 <h2>Performance Engine</h2>
-<div style="margin-bottom:20px;font-size:13px;color:var(--muted)">40-Day Mathematical Projection Model</div>
+<div style="margin-bottom:20px;font-size:13px;color:var(--muted)">Mathematical Multi-Week Milestone Projection Model</div>
 
 <div class="nav-tabs">
-  <a href="calories.html">Log Meals</a>
+  <a href="calories.html">Log Tracker</a>
   <a href="calories-analysis.html" class="active">Simulation & Analysis</a>
 </div>
 
 <div class="panel">
-  <h3>Projected Engine Results (40-day target)</h3>
-  <table id="summaryTable">
-    <tr><td>Baseline Intake Target</td><td id="baseKcal" style="text-align:right;font-weight:bold">2500 kcal</td></tr>
-    <tr><td>Est. Total Deficit Weight-Loss</td><td id="estLoss" class="good" style="text-align:right;font-weight:bold">0.00 kg</td></tr>
-    <tr><td>Corrected Fluid/Tissue Loss</td><td id="corrLoss" class="good" style="text-align:right;font-weight:bold">0.00 kg</td></tr>
+  <h3>Milestone Target Roadmaps</h3>
+  <div class="milestone-grid" id="milestoneBox"></div>
+</div>
+
+<div class="panel">
+  <h3>Simulation Target Metrics</h3>
+  <table>
+    <tr><td>Base Metabolism Engine</td><td style="text-align:right;font-weight:bold">2500 kcal</td></tr>
+    <tr><td>Keto Model Trajectory Deficit</td><td id="estLoss" class="good" style="text-align:right;font-weight:bold">-0.00 kg</td></tr>
+    <tr><td>Simulated Corrected Tissue Delta</td><td id="corrLoss" class="good" style="text-align:right;font-weight:bold">-0.00 kg</td></tr>
   </table>
 </div>
 
 <div class="panel">
-  <h3>Daily Trend Simulator Run</h3>
+  <h3>Daily Forecast (Alternating Track)</h3>
   <div style="overflow-x:auto">
     <table>
       <thead>
         <tr>
-          <th>Day</th>
-          <th>Log/Est.</th>
-          <th>Deficit</th>
-          <th>Fat Δ (kg)</th>
-          <th>Sim Weight</th>
+          <th>Day Stamp</th>
+          <th>Budget Used</th>
+          <th>Net Deficit</th>
+          <th>Fat Δ</th>
+          <th>Projected kg</th>
         </tr>
       </thead>
       <tbody id="simBody"></tbody>
@@ -63,65 +69,88 @@
 
 <script>
   const $=id=>document.getElementById(id);
-  
-  // Base configuration fallbacks pulled from your custom profile values
   let cfg = JSON.parse(localStorage.getItem('weight_cfg') || '{}');
-  const BASE_METABOLISM = parseFloat(cfg.base) || 2500; 
-  $('baseKcal').innerText = BASE_METABOLISM + ' kcal';
+  const BASE_METABOLISM = parseFloat(cfg.base) || 2500;
 
-  function runSimulation() {
+  function runModel() {
+    const cachedWeights = JSON.parse(localStorage.getItem('weight_rows') || '[]');
+    let activeStartingWeight = 94.6; 
+    if(cachedWeights.length > 0) {
+      activeStartingWeight = parseFloat(cachedWeights[cachedWeights.length - 1].kg) || 94.6;
+    }
+
     const simBody = $('simBody');
     simBody.innerHTML = '';
 
-    // Track state baseline metrics
-    let currentSimWeight = 94.6; 
-    let currentCorrWeight = 94.6;
-    let totalFatLoss = 0;
-
+    let simulationWeight = activeStartingWeight;
+    let accumulatedFatLoss = 0;
     const today = new Date();
-    
-    for (let day = 1; day <= 40; day++) {
+
+    const targets = [90, 85, 80, 75, 69];
+    const milestoneDates = {};
+
+    for (let day = 1; day <= 120; day++) {
       const targetDate = new Date(today);
       targetDate.setDate(today.getDate() + (day - 1));
-      const dateString = targetDate.toLocaleDateString('sv').substring(0,10);
+      const dateStr = targetDate.toLocaleDateString('sv').substring(0,10);
+      const isWeekend = (targetDate.getDay() === 0 || targetDate.getDay() === 6);
+
+      // Check current log presence or trigger alternating pattern: 500 weekdays, 3000 weekends
+      const localLog = JSON.parse(localStorage.getItem(`intake_${dateStr}`) || 'null');
+      let sportExpenditure = parseFloat(localStorage.getItem(`sport_${dateStr}`) || '0');
       
-      // Look up localized intake logs or fall back to an assumed baseline value of 500 kcal
-      const localLog = JSON.parse(localStorage.getItem(`intake_${dateString}`) || 'null');
-      let consumed = 500; 
-      let label = " (Est.)";
+      let consumedKcal = isWeekend ? 3000 : 500;
+      let label = isWeekend ? " (Weekend Sim)" : " (Weekday Sim)";
 
       if (localLog && localLog.length > 0) {
-        consumed = localLog.reduce((acc, curr) => acc + curr.kcal, 0);
-        label = " (Logged)";
-      } else if (day === 1) {
-        consumed = 1000; // Aligns with historical starting patterns
-        label = " (Start)";
+        consumedKcal = localLog.reduce((acc, curr) => acc + curr.kcal, 0);
+        label = " (Logged Log)";
       }
 
-      // Calculations derived from Excel structures: 7000 kcal = 1kg tissue mass adjustment
-      const difference = BASE_METABOLISM - consumed;
-      const fatReductionKg = difference / 7000;
-      totalFatLoss += fatReductionKg;
+      const dailyNetExpenditure = BASE_METABOLISM + sportExpenditure;
+      const balanceDeficit = dailyNetExpenditure - consumedKcal;
+      const fatReductionKg = balanceDeficit / 7000;
 
-      currentSimWeight -= fatReductionKg;
+      accumulatedFatLoss += fatReductionKg;
+      simulationWeight -= fatReductionKg;
 
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${dateString}</td>
-        <td>${consumed} kcal${label}</td>
-        <td class="${difference >= 0 ? 'good' : 'warn'}">${difference >= 0 ? '+' : ''}${difference}</td>
-        <td>${fatReductionKg.toFixed(3)} kg</td>
-        <td style="font-weight:bold">${currentSimWeight.toFixed(2)} kg</td>
-      `;
-      simBody.appendChild(row);
+      targets.forEach(t => {
+        if (simulationWeight <= t && !milestoneDates[t]) {
+          milestoneDates[t] = day;
+        }
+      });
+
+      if (day <= 30) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${dateStr}</td>
+          <td>${consumedKcal} kcal${label}</td>
+          <td class="${balanceDeficit >= 0 ? 'good' : 'warn'}">${balanceDeficit >= 0 ? '+' : ''}${balanceDeficit}</td>
+          <td>${fatReductionKg.toFixed(3)} kg</td>
+          <td style="font-weight:bold">${simulationWeight.toFixed(2)} kg</td>
+        `;
+        simBody.appendChild(row);
+      }
     }
 
-    // Mathematical adjustments mapping directly to the spreadsheet matrix engines
-    $('estLoss').innerText = `-${totalFatLoss.toFixed(2)} kg`;
-    $('corrLoss').innerText = `-${(totalFatLoss * 1.035).toFixed(2)} kg`;
+    $('estLoss').innerText = `-${accumulatedFatLoss.toFixed(2)} kg`;
+    $('corrLoss').innerText = `-${(accumulatedFatLoss * 1.035).toFixed(2)} kg`;
+
+    // Render Milestone Output Grid
+    const mBox = $('milestoneBox');
+    mBox.innerHTML = '';
+    targets.forEach(t => {
+      const daysLeft = milestoneDates[t];
+      const displayString = daysLeft ? `${daysLeft} Days` : '120+ Days';
+      mBox.innerHTML += `
+        <div class="m-card">
+          <div style="font-size:11px;color:var(--muted)">Target Limit ${t} kg</div>
+          <div style="font-size:18px;font-weight:bold;color:var(--accent);margin-top:2px">${displayString}</div>
+        </div>`;
+    });
   }
 
-  runSimulation();
+  runModel();
 </script>
 </body>
 </html>
