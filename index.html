@@ -78,6 +78,10 @@
   .zlab{display:flex;justify-content:space-between;font-size:10px;color:var(--faint)}
   .spacer{flex:1}
   .foot{text-align:center;color:var(--faint);font-size:10px;margin-top:18px;text-transform:uppercase;letter-spacing:.1em}
+  .link-row{display:flex;gap:11px;margin-top:6px}
+  .link-row a{flex:1;text-align:center;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    border-radius:12px;padding:14px;text-decoration:none;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+  .link-row a .ar{color:var(--accent)}
   .scrim{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);
     display:none;align-items:flex-end;justify-content:center;z-index:50}
   .scrim.show{display:flex}
@@ -147,6 +151,10 @@
   </div>
 
   <div class="spacer"></div>
+  <div class="link-row">
+    <a href="analysis.html">History <span class="ar">→</span></a>
+    <a href="calories.html">Calories <span class="ar">→</span></a>
+  </div>
   <div class="foot">Stored in your Google Sheet · Goal 69 kg</div>
 </div>
 
@@ -160,6 +168,8 @@
       <input type="text" id="cfgToken" placeholder="your secret token"></div>
     <div class="field"><label>Height (cm)</label>
       <input type="number" id="cfgHeight" placeholder="168"></div>
+    <div class="field"><label>Base rate (kcal/day)</label>
+      <input type="number" id="cfgBase" placeholder="2500"></div>
     <div class="sheet-actions">
       <button class="btn-cancel" id="cfgCancel">Cancel</button>
       <button class="btn-save" id="cfgSave">Save</button>
@@ -170,12 +180,14 @@
 
 <script>
 const CFG_KEY='wt_cfg_v1';const DATA_KEY='wt_cache_v1';
-let cfg=loadCfg();let rows=loadCache();
+let cfg=loadCfg();let rows=loadWeight();
 const HEIGHT_DEFAULT=168;const START=96;
 function loadCfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY))||{}}catch(e){return {}}}
 function saveCfg(c){localStorage.setItem(CFG_KEY,JSON.stringify(c))}
-function loadCache(){try{return JSON.parse(localStorage.getItem(DATA_KEY))||[]}catch(e){return []}}
-function saveCache(r){localStorage.setItem(DATA_KEY,JSON.stringify(r))}
+function loadCacheObj(){try{const v=JSON.parse(localStorage.getItem(DATA_KEY));
+  if(Array.isArray(v))return {weight:v};return v||{}}catch(e){return {}}}
+function loadWeight(){return loadCacheObj().weight||[]}
+function saveCache(r){const c=loadCacheObj();c.weight=r;localStorage.setItem(DATA_KEY,JSON.stringify(c))}
 function height(){return parseFloat(cfg.height)||HEIGHT_DEFAULT}
 const $=id=>document.getElementById(id);
 function todayStr(){const d=new Date();const tz=d.getTimezoneOffset()*60000;return new Date(d-tz).toISOString().slice(0,10)}
@@ -255,7 +267,9 @@ async function api(action,payload){
 async function pull(){
   if(!cfg.url||!cfg.token){setSync('err','Not set up — tap ⚙');return}
   setSync('busy','Loading…');
-  try{const d=await api('read');rows=d.rows;saveCache(rows);refresh();setSync('ok','Synced')}
+  try{const d=await api('read');rows=d.weight||[];saveCache(rows);
+    const c=loadCacheObj();c.intake=d.intake||[];c.sport=d.sport||[];localStorage.setItem(DATA_KEY,JSON.stringify(c));
+    refresh();setSync('ok','Synced')}
   catch(e){setSync('err','Offline — showing cached data');refresh()}}
 
 async function save(){
@@ -267,19 +281,20 @@ async function save(){
   if(idx>=0)rows[idx].kg=kg;else rows.push({date,kg,note:''});
   rows.sort((a,b)=>a.date<b.date?-1:1);saveCache(rows);refresh();
   setSync('busy','Saving…');
-  try{const d=await api('add',{date,kg});rows=d.rows;saveCache(rows);refresh();
+  try{const d=await api('add',{table:'weight',date,kg});rows=d.weight||[];saveCache(rows);refresh();
     setSync('ok','Synced');toast('Saved ✓');$('kg').value='';$('kg').blur()}
   catch(e){if(e.message==='not-configured'){setSync('err','Not set up');toast('Set up first (⚙)',true)}
     else{setSync('err','Saved locally, will sync');toast('Saved offline',true)}}
   finally{$('save').disabled=false}}
 
 function openCfg(){$('cfgUrl').value=cfg.url||'';$('cfgToken').value=cfg.token||'';
-  $('cfgHeight').value=cfg.height||HEIGHT_DEFAULT;$('scrim').classList.add('show')}
+  $('cfgHeight').value=cfg.height||HEIGHT_DEFAULT;$('cfgBase').value=cfg.base||2500;$('scrim').classList.add('show')}
 function closeCfg(){$('scrim').classList.remove('show')}
 $('gear').onclick=openCfg;$('cfgCancel').onclick=closeCfg;
 $('scrim').onclick=e=>{if(e.target===$('scrim'))closeCfg()};
 $('cfgSave').onclick=()=>{cfg.url=$('cfgUrl').value.trim();cfg.token=$('cfgToken').value.trim();
-  cfg.height=parseFloat($('cfgHeight').value)||HEIGHT_DEFAULT;saveCfg(cfg);closeCfg();toast('Saved ✓');pull()};
+  cfg.height=parseFloat($('cfgHeight').value)||HEIGHT_DEFAULT;
+  cfg.base=parseFloat($('cfgBase').value)||2500;saveCfg(cfg);closeCfg();toast('Saved ✓');pull()};
 $('todayBtn').onclick=setToday;$('save').onclick=save;
 $('kg').addEventListener('keydown',e=>{if(e.key==='Enter')save()});
 
