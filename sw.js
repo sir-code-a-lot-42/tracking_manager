@@ -1,4 +1,4 @@
-const CACHE='gewicht-v4';
+const CACHE='gewicht-v5';
 const SHELL=['index.html','analysis.html','calories.html','calories-analysis.html',
   'config.js','foods.js','manifest.json','icon-180.png','icon-192.png','icon-512.png'];
 
