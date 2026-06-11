@@ -4,6 +4,7 @@
 // energy-expenditure model. Edit constants here, nowhere else.
 // ============================================================
 const WT = (() => {
+  const APP_VERSION = 'v5';        // bump together with the sw.js CACHE name
   const CFG_KEY  = 'wt_cfg_v1';    // settings (url, token, height, age, sex, pal, base, sim targets)
   const DATA_KEY = 'wt_cache_v1';  // cached sheet data: { weight:[], intake:[], sport:[] }
   const QUEUE_KEY= 'wt_queue_v1';  // pending offline writes
@@ -88,7 +89,21 @@ const WT = (() => {
     return sent;
   }
 
-  return { CFG_KEY, DATA_KEY, START, GOALS,
+  // ---------- version badge ----------
+  // Tiny corner indicator so it's always visible which deployed version is
+  // actually running (debugging aid for service-worker update lag).
+  function showVersionBadge(){
+    const b = document.createElement('div');
+    b.textContent = APP_VERSION;
+    b.style.cssText = 'position:fixed;top:3px;right:5px;font-size:9px;color:#5a616d;' +
+      'font-family:ui-monospace,monospace;z-index:5;pointer-events:none;opacity:.8';
+    document.body.appendChild(b);
+  }
+  if(document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', showVersionBadge);
+  else showVersionBadge();
+
+  return { APP_VERSION, CFG_KEY, DATA_KEY, START, GOALS,
            loadCfg, saveCfg, loadCacheObj, saveCacheObj, loadWeight, saveWeight, latestWeight,
            esc, bmr, tdee, api, queue, flushQueue, loadQueue };
 })();
