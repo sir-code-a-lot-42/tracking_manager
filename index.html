@@ -86,13 +86,16 @@
     display:none;align-items:flex-end;justify-content:center;z-index:50}
   .scrim.show{display:flex}
   .sheet{background:var(--panel);border:1px solid var(--line);border-bottom:none;border-radius:18px 18px 0 0;
-    width:100%;max-width:430px;padding:22px 18px calc(26px + env(safe-area-inset-bottom));box-shadow:var(--shadow)}
+    width:100%;max-width:430px;padding:22px 18px calc(26px + env(safe-area-inset-bottom));box-shadow:var(--shadow);
+    max-height:85dvh;overflow-y:auto}
   .sheet h2{font-size:16px;margin-bottom:4px}
   .sheet p{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5}
   .field{margin-bottom:14px}
   .field label{display:block;font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.09em}
-  .field input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+  .field input,.field select{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
     border-radius:10px;padding:13px;font-size:15px;font-family:inherit}
+  .field-row{display:flex;gap:10px}
+  .field-row .field{flex:1}
   .sheet-actions{display:flex;gap:10px;margin-top:6px}
   .sheet-actions button{flex:1;border-radius:11px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;border:1px solid var(--line)}
   .btn-save{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -135,7 +138,7 @@
       <div class="bar"><i id="tLostBar" style="width:0%"></i></div>
     </div>
     <div class="tile">
-      <div class="v" id="tEta">—</div><div class="k">Forecast 90 kg</div>
+      <div class="v" id="tEta">—</div><div class="k" id="tEtaK">Forecast 90 kg</div>
       <div class="bar"><i id="tEtaBar" style="width:0%;background:var(--good)"></i></div>
     </div>
   </div>
@@ -144,7 +147,7 @@
     <div class="card-h"><span class="t" id="bmiTitle">BMI · 168 cm</span><span class="more" id="bmiCat" style="color:var(--mid)">—</span></div>
     <div style="display:flex;align-items:baseline;gap:8px">
       <span style="font-size:28px;font-weight:700;font-variant-numeric:tabular-nums" id="bmiVal">—</span>
-      <span style="font-size:12px;color:var(--muted)">Goal 69 kg → 24.4</span>
+      <span style="font-size:12px;color:var(--muted)" id="bmiGoal">Goal 69 kg → 24.4</span>
     </div>
     <div class="zone"><div class="mk" id="bmiMk" style="left:50%"></div></div>
     <div class="zlab"><span>15</span><span>18.5</span><span>25</span><span>30</span><span>40</span></div>
@@ -161,14 +164,28 @@
 <div class="scrim" id="scrim">
   <div class="sheet">
     <h2>Settings</h2>
-    <p>Connection to your Google Sheet. You get both when you deploy the Apps Script.</p>
+    <p>Connection to your Google Sheet, plus the parameters of the energy model. Age, sex and activity factor enable the dynamic Mifflin–St Jeor expenditure model; without them the fixed base rate is used.</p>
     <div class="field"><label>Web app URL (…/exec)</label>
       <input type="url" id="cfgUrl" placeholder="https://script.google.com/macros/s/…/exec"></div>
     <div class="field"><label>Token</label>
       <input type="text" id="cfgToken" placeholder="your secret token"></div>
-    <div class="field"><label>Height (cm)</label>
-      <input type="number" id="cfgHeight" placeholder="168"></div>
-    <div class="field"><label>Base rate (kcal/day)</label>
+    <div class="field-row">
+      <div class="field"><label>Height (cm)</label>
+        <input type="number" id="cfgHeight" placeholder="168"></div>
+      <div class="field"><label>Age (years)</label>
+        <input type="number" id="cfgAge" placeholder="e.g. 45"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Sex (for BMR)</label>
+        <select id="cfgSex">
+          <option value="">— not set —</option>
+          <option value="m">male</option>
+          <option value="f">female</option>
+        </select></div>
+      <div class="field"><label>Activity factor (PAL)</label>
+        <input type="number" id="cfgPal" step="0.05" placeholder="1.4"></div>
+    </div>
+    <div class="field"><label>Base rate fallback (kcal/day)</label>
       <input type="number" id="cfgBase" placeholder="2500"></div>
     <div class="sheet-actions">
       <button class="btn-cancel" id="cfgCancel">Cancel</button>
@@ -178,16 +195,11 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="config.js"></script>
 <script>
-const CFG_KEY='wt_cfg_v1';const DATA_KEY='wt_cache_v1';
-let cfg=loadCfg();let rows=loadWeight();
-const HEIGHT_DEFAULT=168;const START=96;
-function loadCfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY))||{}}catch(e){return {}}}
-function saveCfg(c){localStorage.setItem(CFG_KEY,JSON.stringify(c))}
-function loadCacheObj(){try{const v=JSON.parse(localStorage.getItem(DATA_KEY));
-  if(Array.isArray(v))return {weight:v};return v||{}}catch(e){return {}}}
-function loadWeight(){return loadCacheObj().weight||[]}
-function saveCache(r){const c=loadCacheObj();c.weight=r;localStorage.setItem(DATA_KEY,JSON.stringify(c))}
+let cfg=WT.loadCfg();let rows=WT.loadWeight();
+const HEIGHT_DEFAULT=168;const START=WT.START;
+const GOAL_NEXT=WT.GOALS[0];const GOAL_FINAL=WT.GOALS[WT.GOALS.length-1];
 function height(){return parseFloat(cfg.height)||HEIGHT_DEFAULT}
 const $=id=>document.getElementById(id);
 function todayStr(){const d=new Date();const tz=d.getTimezoneOffset()*60000;return new Date(d-tz).toISOString().slice(0,10)}
@@ -221,6 +233,9 @@ function regression(t){const N=Math.min(t.length,21);const pts=t.slice(-N);if(pt
 function fmtShort(ts){return new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}
 
 function refresh(){
+  $('tEtaK').textContent='Forecast '+GOAL_NEXT+' kg';
+  const hh=height()/100;
+  $('bmiGoal').textContent='Goal '+GOAL_FINAL+' kg → '+(GOAL_FINAL/(hh*hh)).toFixed(1);
   const t=computeTrend(rows);
   if(!t.length){$('wBig').className='wbig empty';$('wBig').innerHTML='—<small> kg</small>';
     $('wTrend').textContent='—';$('bmiVal').textContent='—';$('bmiCat').textContent='—';
@@ -236,13 +251,13 @@ function refresh(){
   const lost=START-last.kg;
   $('tLost').innerHTML=(lost>=0?'−':'+')+Math.abs(lost).toFixed(1)+' <small>kg</small>';
   $('tLostK').textContent='Since start ('+START+')';
-  $('tLostBar').style.width=Math.max(0,Math.min(100,(lost/(START-69))*100))+'%';
+  $('tLostBar').style.width=Math.max(0,Math.min(100,(lost/(START-GOAL_FINAL))*100))+'%';
   const reg=regression(t);
   if(reg&&reg.slope<-0.0001){
-    if(90>=last.trend){$('tEta').textContent='reached';$('tEtaBar').style.width='100%'}
-    else{const days=(90-last.trend)/reg.slope;
+    if(GOAL_NEXT>=last.trend){$('tEta').textContent='reached';$('tEtaBar').style.width='100%'}
+    else{const days=(GOAL_NEXT-last.trend)/reg.slope;
       if(days>0&&days<3650){$('tEta').textContent='≈ '+fmtShort(last.t+days*86400000);
-        $('tEtaBar').style.width=Math.max(4,Math.min(100,(lost/(START-90))*100))+'%'}
+        $('tEtaBar').style.width=Math.max(4,Math.min(100,(lost/(START-GOAL_NEXT))*100))+'%'}
       else{$('tEta').textContent='—'}}
   }else{$('tEta').textContent='—'}
   const h=height()/100;const bmi=last.kg/(h*h);
@@ -258,17 +273,11 @@ function refresh(){
   drawSpark(t);
 }
 
-async function api(action,payload){
-  if(!cfg.url||!cfg.token)throw new Error('not-configured');
-  const res=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify(Object.assign({action,token:cfg.token},payload||{}))});
-  const data=await res.json();if(!data.ok)throw new Error(data.error||'error');return data}
-
 async function pull(){
   if(!cfg.url||!cfg.token){setSync('err','Not set up — tap ⚙');return}
   setSync('busy','Loading…');
-  try{const d=await api('read');rows=d.weight||[];saveCache(rows);
-    const c=loadCacheObj();c.intake=d.intake||[];c.sport=d.sport||[];localStorage.setItem(DATA_KEY,JSON.stringify(c));
+  try{const d=await WT.api(cfg,'read');rows=d.weight||[];WT.saveWeight(rows);
+    const c=WT.loadCacheObj();c.intake=d.intake||[];c.sport=d.sport||[];WT.saveCacheObj(c);
     refresh();setSync('ok','Synced')}
   catch(e){setSync('err','Offline — showing cached data');refresh()}}
 
@@ -279,28 +288,42 @@ async function save(){
   $('save').disabled=true;
   const idx=rows.findIndex(r=>r.date===date);
   if(idx>=0)rows[idx].kg=kg;else rows.push({date,kg,note:''});
-  rows.sort((a,b)=>a.date<b.date?-1:1);saveCache(rows);refresh();
+  rows.sort((a,b)=>a.date<b.date?-1:1);WT.saveWeight(rows);refresh();
   setSync('busy','Saving…');
-  try{const d=await api('add',{table:'weight',date,kg});rows=d.weight||[];saveCache(rows);refresh();
+  try{const d=await WT.api(cfg,'add',{table:'weight',date,kg});rows=d.weight||[];WT.saveWeight(rows);refresh();
     setSync('ok','Synced');toast('Saved ✓');$('kg').value='';$('kg').blur()}
   catch(e){if(e.message==='not-configured'){setSync('err','Not set up');toast('Set up first (⚙)',true)}
-    else{setSync('err','Saved locally, will sync');toast('Saved offline',true)}}
+    else{WT.queue({action:'add',table:'weight',date,kg});
+      setSync('err','Saved locally — queued');toast('Saved offline, will sync',true);$('kg').value=''}}
   finally{$('save').disabled=false}}
 
+async function flushAndPull(){
+  try{const n=await WT.flushQueue(cfg);
+    if(n>0)toast('Synced '+n+' queued entr'+(n===1?'y':'ies')+' ✓')}catch(e){}
+  pull();
+}
+
 function openCfg(){$('cfgUrl').value=cfg.url||'';$('cfgToken').value=cfg.token||'';
-  $('cfgHeight').value=cfg.height||HEIGHT_DEFAULT;$('cfgBase').value=cfg.base||2500;$('scrim').classList.add('show')}
+  $('cfgHeight').value=cfg.height||HEIGHT_DEFAULT;$('cfgBase').value=cfg.base||2500;
+  $('cfgAge').value=cfg.age||'';$('cfgSex').value=cfg.sex||'';$('cfgPal').value=cfg.pal||1.4;
+  $('scrim').classList.add('show')}
 function closeCfg(){$('scrim').classList.remove('show')}
 $('gear').onclick=openCfg;$('cfgCancel').onclick=closeCfg;
 $('scrim').onclick=e=>{if(e.target===$('scrim'))closeCfg()};
 $('cfgSave').onclick=()=>{cfg.url=$('cfgUrl').value.trim();cfg.token=$('cfgToken').value.trim();
   cfg.height=parseFloat($('cfgHeight').value)||HEIGHT_DEFAULT;
-  cfg.base=parseFloat($('cfgBase').value)||2500;saveCfg(cfg);closeCfg();toast('Saved ✓');pull()};
+  cfg.base=parseFloat($('cfgBase').value)||2500;
+  cfg.age=parseFloat($('cfgAge').value)||'';
+  cfg.sex=$('cfgSex').value||'';
+  cfg.pal=parseFloat($('cfgPal').value)||1.4;
+  WT.saveCfg(cfg);closeCfg();toast('Saved ✓');flushAndPull()};
 $('todayBtn').onclick=setToday;$('save').onclick=save;
 $('kg').addEventListener('keydown',e=>{if(e.key==='Enter')save()});
+window.addEventListener('online',flushAndPull);
 
 setToday();refresh();
 if(!cfg.url||!cfg.token){setTimeout(openCfg,400)}
-pull();
+flushAndPull();
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 </script>
 </body>
