@@ -26,6 +26,10 @@
   .m-card{background:var(--panel-2);padding:10px;border-radius:8px;border:1px solid var(--line)}
   .param-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
   .param-grid label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+  .day-row{display:grid;grid-template-columns:38px 1fr 64px;align-items:center;gap:10px;padding:5px 0}
+  .day-row .dlab{font-size:12px;color:var(--muted);font-weight:bold}
+  .day-row .dval{font-size:13px;font-weight:bold;text-align:right;font-variant-numeric:tabular-nums}
+  .day-row input[type=range]{width:100%;padding:0;height:26px;accent-color:var(--accent);background:transparent;border:none}
   input{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
     padding:12px;border-radius:8px;font-size:15px;outline:none;width:100%}
   button{background:var(--accent);color:var(--accent-ink);font-weight:bold;cursor:pointer;border:none;
@@ -48,21 +52,10 @@
 </div>
 
 <div class="panel">
-  <h3>Model Parameters</h3>
-  <div style="margin-bottom:14px">
-    <label style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">
-      <span>Weekday target</span><span style="color:var(--ink);font-weight:bold" id="pWeekdayVal">1200 kcal</span>
-    </label>
-    <input type="range" id="pWeekday" min="1200" max="2000" step="50" style="padding:0;height:30px;accent-color:var(--accent)">
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--faint)"><span>1200</span><span>2000</span></div>
-  </div>
-  <div class="param-grid" style="grid-template-columns:1fr">
-    <div>
-      <label>Weekend target (kcal)</label>
-      <input type="number" id="pWeekend" min="0" step="50">
-    </div>
-  </div>
-  <div class="note">Intake targets per your physician's plan — weekday adjustable between 1200 and 2000 kcal, weekend default 2500 kcal. Changes are saved automatically and the projection updates immediately. Days that already have a logged intake use the real log instead of the target.</div>
+  <h3>Daily Intake Targets (kcal)</h3>
+  <div id="dayParams"></div>
+  <div class="note" id="weekSummary" style="color:var(--muted)"></div>
+  <div class="note">One target per weekday, 0–3000 kcal — set per your physician's plan, including soup-based fasting days under weekly medical supervision. Changes save automatically and the projection updates instantly. Days that already have a logged intake use the real log instead of the target.</div>
 </div>
 
 <div class="panel">
@@ -111,15 +104,52 @@
   const $=id=>document.getElementById(id);
   let cfg = WT.loadCfg();
 
-  const DEFAULT_WEEKDAY = 1200;   // physician-adjustable, slider range 1200–2000
-  const DEFAULT_WEEKEND = 2500;
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];   // display order, Monday first
+  const SLIDER_MIN = 0, SLIDER_MAX = 3000, SLIDER_STEP = 50;
 
-  function clampWd(v){ return Math.min(2000, Math.max(1200, v)); }
+  function clampT(v){ return Math.min(SLIDER_MAX, Math.max(SLIDER_MIN, parseFloat(v) || 0)); }
+
+  // Targets stored as cfg.simTargets = [Mon..Sun]. Migrates from the older
+  // two-value scheme (simWeekday/simWeekend) on first use.
   function getTargets(){
-    return {
-      weekday: clampWd(parseFloat(cfg.simWeekday) || DEFAULT_WEEKDAY),
-      weekend: parseFloat(cfg.simWeekend) || DEFAULT_WEEKEND
-    };
+    let t = cfg.simTargets;
+    if(!Array.isArray(t) || t.length !== 7){
+      const wd = parseFloat(cfg.simWeekday) || 1200;
+      const we = parseFloat(cfg.simWeekend) || 2500;
+      t = [wd, wd, wd, wd, wd, we, we];
+    }
+    return t.map(clampT);
+  }
+  // JS getDay(): 0=Sun … 6=Sat  →  index into Mon-first array
+  function dayIndex(date){ return (date.getDay() + 6) % 7; }
+
+  function buildParams(){
+    const t = getTargets();
+    $('dayParams').innerHTML = DAYS.map((d,i)=>`
+      <div class="day-row">
+        <span class="dlab">${d}</span>
+        <input type="range" data-i="${i}" min="${SLIDER_MIN}" max="${SLIDER_MAX}" step="${SLIDER_STEP}" value="${t[i]}">
+        <span class="dval" id="dv${i}">${t[i]}</span>
+      </div>`).join('');
+    document.querySelectorAll('#dayParams input[type=range]').forEach(sl=>{
+      sl.addEventListener('input', () => {            // live label while dragging
+        $('dv'+sl.dataset.i).innerText = sl.value;
+      });
+      sl.addEventListener('change', () => {           // save + re-run on release
+        const t = getTargets();
+        t[parseInt(sl.dataset.i)] = clampT(sl.value);
+        cfg.simTargets = t;
+        WT.saveCfg(cfg);
+        runModel();
+      });
+    });
+    updateWeekSummary(t);
+  }
+
+  function updateWeekSummary(t){
+    const total = t.reduce((a,v)=>a+v,0);
+    $('weekSummary').innerText =
+      `Weekly intake: ${total} kcal · daily average: ${Math.round(total/7)} kcal`;
   }
 
   function sportForDate(dateStr){
@@ -135,9 +165,7 @@
 
   function runModel() {
     const targets = getTargets();
-    $('pWeekday').value = targets.weekday;
-    $('pWeekdayVal').innerText = targets.weekday + ' kcal';
-    $('pWeekend').value = targets.weekend;
+    updateWeekSummary(targets);
 
     // Start from the latest synced weight (shared cache), fall back to START.
     const activeStartingWeight = WT.latestWeight() || WT.START;
@@ -167,14 +195,14 @@
       const targetDate = new Date(today);
       targetDate.setDate(today.getDate() + (day - 1));
       const dateStr = targetDate.toLocaleDateString('sv').substring(0,10);
-      const isWeekend = (targetDate.getDay() === 0 || targetDate.getDay() === 6);
 
-      // Use the real log where one exists, otherwise the configured target.
+      // Use the real log where one exists, otherwise the day's configured target.
       const localLog = JSON.parse(localStorage.getItem(`intake_${dateStr}`) || 'null');
       const sportExpenditure = sportForDate(dateStr);
 
-      let consumedKcal = isWeekend ? targets.weekend : targets.weekday;
-      let label = isWeekend ? ' (weekend target)' : ' (weekday target)';
+      const di = dayIndex(targetDate);
+      let consumedKcal = targets[di];
+      let label = ` (${DAYS[di]} target)`;
 
       if (localLog && localLog.length > 0) {
         consumedKcal = localLog.reduce((acc, curr) => acc + curr.kcal, 0);
@@ -223,21 +251,7 @@
     mBox.innerHTML = mHtml;
   }
 
-  // live label while dragging, save + re-run on release / change
-  $('pWeekday').addEventListener('input', () => {
-    $('pWeekdayVal').innerText = $('pWeekday').value + ' kcal';
-  });
-  $('pWeekday').addEventListener('change', () => {
-    cfg.simWeekday = clampWd(parseFloat($('pWeekday').value) || DEFAULT_WEEKDAY);
-    WT.saveCfg(cfg);
-    runModel();
-  });
-  $('pWeekend').addEventListener('change', () => {
-    cfg.simWeekend = parseFloat($('pWeekend').value) || DEFAULT_WEEKEND;
-    WT.saveCfg(cfg);
-    runModel();
-  });
-
+  buildParams();
   runModel();
 </script>
 </body>
