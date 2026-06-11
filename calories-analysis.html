@@ -4,153 +4,348 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#101216">
-<title>Simulation Engine</title>
+<title>Calorie & Sport Logger</title>
 <style>
   :root{
     --bg:#101216; --panel:#191c22; --panel-2:#20242c; --line:#2c313b;
-    --ink:#f3f5f8; --muted:#8a92a0; --accent:#2b8fff; --good:#3ec98a; --hi:#e7563f;
+    --ink:#f3f5f8; --muted:#8a92a0; --faint:#5a616d;
+    --accent:#2b8fff; --accent-ink:#04203f;
+    --good:#3ec98a; --mid:#f0a83c; --hi:#e7563f;
   }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--ink);padding:20px;font-family:-apple-system,sans-serif;padding-bottom:60px}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--ink);min-height:100dvh;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    padding:20px;padding-bottom:80px}
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
   .nav-tabs{display:flex;gap:10px;margin-bottom:20px}
   .nav-tabs a{color:var(--muted);text-decoration:none;padding:8px 16px;background:var(--panel);border-radius:8px;font-size:14px}
-  .nav-tabs a.active{background:var(--accent);color:#04203f;font-weight:bold}
+  .nav-tabs a.active{background:var(--accent);color:var(--accent-ink);font-weight:bold}
+
+  .grid-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:15px}
+  .stat-card{background:var(--panel);padding:12px;border-radius:12px;text-align:center;border:1px solid var(--line)}
+  .stat-val{font-size:20px;font-weight:bold;margin-top:4px}
+  .warn{color:var(--hi) !important}
+  .safe{color:var(--good) !important}
+
+  /* Carb Progress Component */
+  .gauge-container{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:20px;border:1px solid var(--line)}
+  .gauge-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .gauge-bar{height:14px;background:var(--panel-2);border-radius:7px;overflow:hidden;position:relative;display:flex}
+  .gauge-fill{height:100%;width:0%;background:var(--good);transition:width 0.3s, background-color 0.3s}
+
   .panel{background:var(--panel);border-radius:16px;padding:16px;margin-bottom:20px;border:1px solid var(--line)}
-  h3{margin-bottom:12px;font-size:14px;color:var(--muted);text-transform:uppercase}
-  table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
-  th, td{padding:10px;border-bottom:1px solid var(--line)}
-  th{color:var(--muted);font-weight:normal}
-  .good{color:var(--good)} .warn{color:var(--hi)}
-  .milestone-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .m-card{background:var(--panel-2);padding:10px;border-radius:8px;border:1px solid var(--line)}
+  h3{margin-bottom:12px;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)}
+
+  .form-group{margin-bottom:12px;display:flex;gap:8px}
+  select, input, button{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    padding:12px;border-radius:8px;font-size:15px;outline:none;width:100%}
+  button{background:var(--accent);color:var(--accent-ink);font-weight:bold;cursor:pointer;border:none}
+  button:disabled{opacity:0.4}
+  .hint{font-size:11px;color:var(--faint);margin-top:-6px;margin-bottom:10px}
+
+  .item-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+  .item-row:last-child{border:none}
+  .item-meta{font-size:12px;color:var(--muted)}
+  .del-btn{background:transparent;color:var(--hi);width:auto;padding:4px 8px;font-size:12px}
+
+  .footer-nav{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);
+    display:flex;justify-content:space-around;padding:10px env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
+  .footer-nav a{color:var(--muted);text-decoration:none;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .footer-nav a.active{color:var(--accent)}
+  #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--panel-2);
+    padding:10px 20px;border-radius:20px;border:1px solid var(--line);font-size:14px;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:99}
+  #toast.show{opacity:1}
 </style>
 </head>
 <body>
 
-<h2>Performance Engine</h2>
-<div style="margin-bottom:20px;font-size:13px;color:var(--muted)">Mathematical Multi-Week Milestone Projection Model</div>
+<div class="header">
+  <h2>Intake & Sport</h2>
+  <input type="date" id="datePicker" style="width:auto;padding:6px 10px;">
+</div>
 
 <div class="nav-tabs">
-  <a href="calories.html">Log Tracker</a>
-  <a href="calories-analysis.html" class="active">Simulation & Analysis</a>
+  <a href="calories.html" class="active">Log Tracker</a>
+  <a href="calories-analysis.html">Simulation & Analysis</a>
 </div>
 
-<div class="panel">
-  <h3>Milestone Target Roadmaps</h3>
-  <div class="milestone-grid" id="milestoneBox"></div>
-</div>
-
-<div class="panel">
-  <h3>Simulation Target Metrics</h3>
-  <table>
-    <tr><td>Base Metabolism Engine</td><td style="text-align:right;font-weight:bold">2500 kcal</td></tr>
-    <tr><td>Keto Model Trajectory Deficit</td><td id="estLoss" class="good" style="text-align:right;font-weight:bold">-0.00 kg</td></tr>
-    <tr><td>Simulated Corrected Tissue Delta</td><td id="corrLoss" class="good" style="text-align:right;font-weight:bold">-0.00 kg</td></tr>
-  </table>
-</div>
-
-<div class="panel">
-  <h3>Daily Forecast (Alternating Track)</h3>
-  <div style="overflow-x:auto">
-    <table>
-      <thead>
-        <tr>
-          <th>Day Stamp</th>
-          <th>Budget Used</th>
-          <th>Net Deficit</th>
-          <th>Fat Δ</th>
-          <th>Projected kg</th>
-        </tr>
-      </thead>
-      <tbody id="simBody"></tbody>
-    </table>
+<div class="grid-stats">
+  <div class="stat-card">
+    <div style="font-size:11px;color:var(--muted)">Net Energy</div>
+    <div class="stat-val" id="totalKcal">0</div>
+  </div>
+  <div class="stat-card">
+    <div style="font-size:11px;color:var(--muted)">Carbs Intake</div>
+    <div class="stat-val" id="totalCarbs">0g</div>
+  </div>
+  <div class="stat-card">
+    <div style="font-size:11px;color:var(--muted)">Protein Intake</div>
+    <div class="stat-val" id="totalProtein">0g</div>
   </div>
 </div>
 
+<div class="gauge-container">
+  <div class="gauge-meta">
+    <span id="gaugeStatus">Ketosis Zone</span>
+    <span id="gaugeValue">0 / 20g Limit</span>
+  </div>
+  <div class="gauge-bar">
+    <div id="gaugeFill" class="gauge-fill"></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Add Product Selection</h3>
+  <div class="form-group">
+    <input type="text" id="foodSearch" list="foodList" placeholder="Search food… (type to filter)" autocomplete="off">
+    <datalist id="foodList"></datalist>
+  </div>
+  <div class="hint" id="foodHint"></div>
+  <div class="form-group">
+    <input type="number" id="foodAmount" placeholder="Weight amount (g)" min="1">
+    <button id="addBtn" style="width:35%">Add Food</button>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Manual Entry Override</h3>
+  <div class="form-group">
+    <input type="text" id="manualName" placeholder="E.g., Restaurant Meal / Label Override">
+  </div>
+  <div class="grid-stats" style="grid-template-columns:1fr 1fr 1fr; margin-bottom:10px;">
+    <input type="number" id="manualKcal" placeholder="kcal" min="0">
+    <input type="number" id="manualCarbs" placeholder="Carbs (g)" min="0" step="0.1">
+    <input type="number" id="manualProtein" placeholder="Prot (g)" min="0" step="0.1">
+  </div>
+  <button id="manualAddBtn">Log Quick Override</button>
+</div>
+
+<div class="panel">
+  <h3>Watch / Sport Activity Burn</h3>
+  <div class="form-group">
+    <input type="number" id="sportKcal" placeholder="Active Burn (kcal) from Watch" min="1">
+    <button id="sportSaveBtn" style="width:40%">Add Burn</button>
+  </div>
+  <div class="hint">Multiple workouts per day are added up — each one appears in the list below.</div>
+</div>
+
+<div class="panel">
+  <h3>Today's Tracking Inventory</h3>
+  <div id="itemList"></div>
+</div>
+
+<button id="saveBtn" style="width:100%;margin-top:10px;padding:16px;background:var(--accent);color:var(--accent-ink)">Sync Intake Logs to Cloud</button>
+
+<div id="toast"></div>
+
+<div class="footer-nav">
+  <a href="index.html">⚖️ Weight</a>
+  <a href="analysis.html">📈 Analysis</a>
+  <a href="calories.html" class="active">🔥 Calories</a>
+</div>
+
+<script src="config.js"></script>
+<script src="foods.js"></script>
 <script>
   const $=id=>document.getElementById(id);
-  let cfg = JSON.parse(localStorage.getItem('weight_cfg') || '{}');
-  const BASE_METABOLISM = parseFloat(cfg.base) || 2500;
+  let cfg = WT.loadCfg();          // shared settings — same URL/token as the weight page
+  let currentLog = [];
+  let sportEntries = [];           // array of {kcal, note} — multiple workouts per day
 
-  function runModel() {
-    const cachedWeights = JSON.parse(localStorage.getItem('weight_rows') || '[]');
-    let activeStartingWeight = 94.6; 
-    if(cachedWeights.length > 0) {
-      activeStartingWeight = parseFloat(cachedWeights[cachedWeights.length - 1].kg) || 94.6;
-    }
+  const localToday = new Date().toLocaleDateString('sv').substring(0,10);
+  $('datePicker').value = localToday;
 
-    const simBody = $('simBody');
-    simBody.innerHTML = '';
-
-    let simulationWeight = activeStartingWeight;
-    let accumulatedFatLoss = 0;
-    const today = new Date();
-
-    const targets = [90, 85, 80, 75, 69];
-    const milestoneDates = {};
-
-    for (let day = 1; day <= 120; day++) {
-      const targetDate = new Date(today);
-      targetDate.setDate(today.getDate() + (day - 1));
-      const dateStr = targetDate.toLocaleDateString('sv').substring(0,10);
-      const isWeekend = (targetDate.getDay() === 0 || targetDate.getDay() === 6);
-
-      // Check current log presence or trigger alternating pattern: 500 weekdays, 3000 weekends
-      const localLog = JSON.parse(localStorage.getItem(`intake_${dateStr}`) || 'null');
-      let sportExpenditure = parseFloat(localStorage.getItem(`sport_${dateStr}`) || '0');
-      
-      let consumedKcal = isWeekend ? 3000 : 500;
-      let label = isWeekend ? " (Weekend Sim)" : " (Weekday Sim)";
-
-      if (localLog && localLog.length > 0) {
-        consumedKcal = localLog.reduce((acc, curr) => acc + curr.kcal, 0);
-        label = " (Logged Log)";
-      }
-
-      const dailyNetExpenditure = BASE_METABOLISM + sportExpenditure;
-      const balanceDeficit = dailyNetExpenditure - consumedKcal;
-      const fatReductionKg = balanceDeficit / 7000;
-
-      accumulatedFatLoss += fatReductionKg;
-      simulationWeight -= fatReductionKg;
-
-      targets.forEach(t => {
-        if (simulationWeight <= t && !milestoneDates[t]) {
-          milestoneDates[t] = day;
-        }
-      });
-
-      if (day <= 30) {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${dateStr}</td>
-          <td>${consumedKcal} kcal${label}</td>
-          <td class="${balanceDeficit >= 0 ? 'good' : 'warn'}">${balanceDeficit >= 0 ? '+' : ''}${balanceDeficit}</td>
-          <td>${fatReductionKg.toFixed(3)} kg</td>
-          <td style="font-weight:bold">${simulationWeight.toFixed(2)} kg</td>
-        `;
-        simBody.appendChild(row);
-      }
-    }
-
-    $('estLoss').innerText = `-${accumulatedFatLoss.toFixed(2)} kg`;
-    $('corrLoss').innerText = `-${(accumulatedFatLoss * 1.035).toFixed(2)} kg`;
-
-    // Render Milestone Output Grid
-    const mBox = $('milestoneBox');
-    mBox.innerHTML = '';
-    targets.forEach(t => {
-      const daysLeft = milestoneDates[t];
-      const displayString = daysLeft ? `${daysLeft} Days` : '120+ Days';
-      mBox.innerHTML += `
-        <div class="m-card">
-          <div style="font-size:11px;color:var(--muted)">Target Limit ${t} kg</div>
-          <div style="font-size:18px;font-weight:bold;color:var(--accent);margin-top:2px">${displayString}</div>
-        </div>`;
-    });
+  function initDatabase() {
+    FOOD_DATABASE.sort((a,b)=>a.name.localeCompare(b.name));
+    $('foodList').innerHTML = FOOD_DATABASE.map(f =>
+      `<option value="${WT.esc(f.name)}"></option>`).join('');
   }
 
-  runModel();
+  function findFood(name){
+    const n = String(name).trim().toLowerCase();
+    return FOOD_DATABASE.find(f => f.name.toLowerCase() === n);
+  }
+
+  $('foodSearch').addEventListener('input', () => {
+    const f = findFood($('foodSearch').value);
+    $('foodHint').textContent = f ? `100 g: ${f.kcal} kcal · C ${f.carbs} g · P ${f.protein} g` : '';
+  });
+
+  function sportTotal(){ return sportEntries.reduce((a,s)=>a + (parseFloat(s.kcal)||0), 0); }
+
+  function renderDay() {
+    let k = 0, c = 0, p = 0, html = '';
+
+    currentLog.forEach((item, idx) => {
+      k += item.kcal; c += item.carbs; p += item.protein;
+      html += `
+        <div class="item-row">
+          <div>
+            <div>${WT.esc(item.name)} ${item.amount ? `<span style="color:var(--muted)">(${item.amount}g)</span>` : ''}</div>
+            <div class="item-meta">${item.kcal} kcal | C: ${item.carbs.toFixed(1)}g | P: ${item.protein.toFixed(1)}g</div>
+          </div>
+          <button class="del-btn" onclick="removeItem(${idx})">✕</button>
+        </div>`;
+    });
+
+    sportEntries.forEach((s, idx) => {
+      html += `
+        <div class="item-row" ${idx===0 ? 'style="border-top:1px dashed var(--line)"' : ''}>
+          <div>
+            <div style="color:var(--accent)">🏃 Sport Workout Burn</div>
+            <div class="item-meta">-${s.kcal} Active Energy Expenditure</div>
+          </div>
+          <button class="del-btn" onclick="removeSport(${idx})">✕</button>
+        </div>`;
+    });
+
+    $('itemList').innerHTML = html;
+
+    const netKcal = Math.round(k - sportTotal());
+    $('totalKcal').innerText = netKcal + ' kcal';
+    $('totalCarbs').innerText = c.toFixed(1) + 'g';
+    $('totalProtein').innerText = p.toFixed(1) + 'g';
+
+    // Render Keto Gauge
+    const targetLimit = 20;
+    const percentage = Math.min((c / targetLimit) * 100, 100);
+    const fill = $('gaugeFill');
+    fill.style.width = percentage + '%';
+
+    $('gaugeValue').innerText = `${c.toFixed(1)} / ${targetLimit}g Limit`;
+    if (c > targetLimit) {
+      fill.style.backgroundColor = 'var(--hi)';
+      $('gaugeStatus').innerText = "Keto Alert: Out of Ketosis!";
+      $('gaugeStatus').style.color = 'var(--hi)';
+    } else {
+      fill.style.backgroundColor = 'var(--good)';
+      $('gaugeStatus').innerText = "Safe: Ketosis Maintained";
+      $('gaugeStatus').style.color = 'var(--good)';
+    }
+  }
+
+  $('addBtn').onclick = () => {
+    const base = findFood($('foodSearch').value);
+    const amount = parseFloat($('foodAmount').value);
+    if(!base){ toast('Pick a food from the list first.', true); return; }
+    if(!amount || amount <= 0){ toast('Enter an amount in grams.', true); return; }
+
+    const factor = amount / 100;
+    currentLog.push({
+      name: base.name,
+      amount: amount,
+      kcal: Math.round(base.kcal * factor),
+      carbs: Math.round((base.carbs * factor) * 10) / 10,
+      protein: Math.round((base.protein * factor) * 10) / 10
+    });
+
+    $('foodAmount').value = '';
+    $('foodSearch').value = '';
+    $('foodHint').textContent = '';
+    saveAndRefresh();
+  };
+
+  $('manualAddBtn').onclick = () => {
+    const name = $('manualName').value.trim() || 'Manual Quick Entry';
+    const kcal = Math.round(parseFloat($('manualKcal').value) || 0);
+    const carbs = Math.round((parseFloat($('manualCarbs').value) || 0) * 10) / 10;
+    const protein = Math.round((parseFloat($('manualProtein').value) || 0) * 10) / 10;
+
+    currentLog.push({ name, amount: null, kcal, carbs, protein });
+
+    $('manualName').value = '';
+    $('manualKcal').value = '';
+    $('manualCarbs').value = '';
+    $('manualProtein').value = '';
+    saveAndRefresh();
+  };
+
+  $('sportSaveBtn').onclick = async () => {
+    const burn = Math.round(parseFloat($('sportKcal').value) || 0);
+    if (burn <= 0) return;
+
+    sportEntries.push({ kcal: burn, note: 'Watch Activity Tracker' });
+    $('sportKcal').value = '';
+    saveSport();
+    renderDay();
+
+    const payload = { action: 'add', table: 'sport',
+      date: $('datePicker').value, kcal: burn, note: 'Watch Activity Tracker' };
+    try {
+      await WT.api(cfg, 'add', payload);
+      toast('Sport sync success!');
+    } catch(e) {
+      if(e.message !== 'not-configured') WT.queue(payload);
+      toast('Saved locally — will sync.', true);
+    }
+  };
+
+  window.removeItem = (idx) => { currentLog.splice(idx, 1); saveAndRefresh(); };
+  window.removeSport = (idx) => { sportEntries.splice(idx, 1); saveSport(); renderDay(); };
+
+  function saveSport() {
+    const d = $('datePicker').value;
+    if(sportEntries.length) localStorage.setItem(`sport_${d}`, JSON.stringify(sportEntries));
+    else localStorage.removeItem(`sport_${d}`);
+  }
+
+  function saveAndRefresh() {
+    const d = $('datePicker').value;
+    localStorage.setItem(`intake_${d}`, JSON.stringify(currentLog));
+    renderDay();
+  }
+
+  function loadLocalCache() {
+    const d = $('datePicker').value;
+    currentLog = JSON.parse(localStorage.getItem(`intake_${d}`) || '[]');
+    // sport: accept new array format and old single-number format
+    let raw = localStorage.getItem(`sport_${d}`);
+    sportEntries = [];
+    if(raw){
+      try{
+        const v = JSON.parse(raw);
+        if(Array.isArray(v)) sportEntries = v;
+        else if(typeof v === 'number' && v > 0) sportEntries = [{kcal: v, note: 'Watch Activity Tracker'}];
+      }catch(e){
+        const n = parseFloat(raw);
+        if(n > 0) sportEntries = [{kcal: n, note: 'Watch Activity Tracker'}];
+      }
+    }
+    renderDay();
+  }
+
+  $('datePicker').onchange = loadLocalCache;
+  function toast(msg, err=false) {
+    const t = $('toast'); t.innerText = msg;
+    t.style.borderColor = err ? 'var(--hi)' : 'var(--good)';
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000);
+  }
+
+  $('saveBtn').onclick = async () => {
+    if(!cfg.url || !cfg.token) { toast('Set URL/Token in Settings (⚙ on Weight page) first.', true); return; }
+    $('saveBtn').disabled = true;
+
+    let kcal = 0, carbs = 0, protein = 0;
+    currentLog.forEach(i => { kcal += i.kcal; carbs += i.carbs; protein += i.protein; });
+
+    const payload = { action: 'add', table: 'intake', date: $('datePicker').value,
+      kcal: kcal, carbs_g: carbs, protein_g: protein, items_json: JSON.stringify(currentLog) };
+    try {
+      await WT.api(cfg, 'add', payload);
+      toast('Synced directly to Cloud!');
+    } catch(e) {
+      if(e.message === 'not-configured'){ toast('Set URL/Token in Settings first.', true); }
+      else { WT.queue(payload); toast('Saved offline — queued for sync.', true); }
+    }
+    finally { $('saveBtn').disabled = false; }
+  };
+
+  // flush any queued writes when (re)opened or back online
+  window.addEventListener('online', () => WT.flushQueue(cfg));
+  WT.flushQueue(cfg);
+
+  initDatabase();
+  loadLocalCache();
 </script>
 </body>
 </html>
