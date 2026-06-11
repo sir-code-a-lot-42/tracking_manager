@@ -20,7 +20,7 @@
   .nav-tabs{display:flex;gap:10px;margin-bottom:20px}
   .nav-tabs a{color:var(--muted);text-decoration:none;padding:8px 16px;background:var(--panel);border-radius:8px;font-size:14px}
   .nav-tabs a.active{background:var(--accent);color:var(--accent-ink);font-weight:bold}
-  
+
   .grid-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:15px}
   .stat-card{background:var(--panel);padding:12px;border-radius:12px;text-align:center;border:1px solid var(--line)}
   .stat-val{font-size:20px;font-weight:bold;margin-top:4px}
@@ -32,22 +32,22 @@
   .gauge-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
   .gauge-bar{height:14px;background:var(--panel-2);border-radius:7px;overflow:hidden;position:relative;display:flex}
   .gauge-fill{height:100%;width:0%;background:var(--good);transition:width 0.3s, background-color 0.3s}
-  .gauge-marker{position:absolute;left:20px;top:0;bottom:0;width:2px;background:var(--hi);opacity:0.6}
 
   .panel{background:var(--panel);border-radius:16px;padding:16px;margin-bottom:20px;border:1px solid var(--line)}
   h3{margin-bottom:12px;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)}
-  
+
   .form-group{margin-bottom:12px;display:flex;gap:8px}
   select, input, button{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
     padding:12px;border-radius:8px;font-size:15px;outline:none;width:100%}
   button{background:var(--accent);color:var(--accent-ink);font-weight:bold;cursor:pointer;border:none}
   button:disabled{opacity:0.4}
+  .hint{font-size:11px;color:var(--faint);margin-top:-6px;margin-bottom:10px}
 
   .item-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
   .item-row:last-child{border:none}
   .item-meta{font-size:12px;color:var(--muted)}
   .del-btn{background:transparent;color:var(--hi);width:auto;padding:4px 8px;font-size:12px}
-  
+
   .footer-nav{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);
     display:flex;justify-content:space-around;padding:10px env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
   .footer-nav a{color:var(--muted);text-decoration:none;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px}
@@ -97,8 +97,10 @@
 <div class="panel">
   <h3>Add Product Selection</h3>
   <div class="form-group">
-    <select id="foodSelect"></select>
+    <input type="text" id="foodSearch" list="foodList" placeholder="Search food… (type to filter)" autocomplete="off">
+    <datalist id="foodList"></datalist>
   </div>
+  <div class="hint" id="foodHint"></div>
   <div class="form-group">
     <input type="number" id="foodAmount" placeholder="Weight amount (g)" min="1">
     <button id="addBtn" style="width:35%">Add Food</button>
@@ -122,8 +124,9 @@
   <h3>Watch / Sport Activity Burn</h3>
   <div class="form-group">
     <input type="number" id="sportKcal" placeholder="Active Burn (kcal) from Watch" min="1">
-    <button id="sportSaveBtn" style="width:40%">Log Burn</button>
+    <button id="sportSaveBtn" style="width:40%">Add Burn</button>
   </div>
+  <div class="hint">Multiple workouts per day are added up — each one appears in the list below.</div>
 </div>
 
 <div class="panel">
@@ -141,49 +144,64 @@
   <a href="calories.html" class="active">🔥 Calories</a>
 </div>
 
+<script src="config.js"></script>
 <script src="foods.js"></script>
 <script>
   const $=id=>document.getElementById(id);
-  let cfg = JSON.parse(localStorage.getItem('weight_cfg') || '{}');
+  let cfg = WT.loadCfg();          // shared settings — same URL/token as the weight page
   let currentLog = [];
-  let loggedSportKcal = 0;
+  let sportEntries = [];           // array of {kcal, note} — multiple workouts per day
 
   const localToday = new Date().toLocaleDateString('sv').substring(0,10);
   $('datePicker').value = localToday;
 
   function initDatabase() {
     FOOD_DATABASE.sort((a,b)=>a.name.localeCompare(b.name));
-    $('foodSelect').innerHTML = FOOD_DATABASE.map(f => `<option value="${f.name}">${f.name} (100g: ${f.kcal} kcal)</option>`).join('');
+    $('foodList').innerHTML = FOOD_DATABASE.map(f =>
+      `<option value="${WT.esc(f.name)}"></option>`).join('');
   }
 
+  function findFood(name){
+    const n = String(name).trim().toLowerCase();
+    return FOOD_DATABASE.find(f => f.name.toLowerCase() === n);
+  }
+
+  $('foodSearch').addEventListener('input', () => {
+    const f = findFood($('foodSearch').value);
+    $('foodHint').textContent = f ? `100 g: ${f.kcal} kcal · C ${f.carbs} g · P ${f.protein} g` : '';
+  });
+
+  function sportTotal(){ return sportEntries.reduce((a,s)=>a + (parseFloat(s.kcal)||0), 0); }
+
   function renderDay() {
-    $('itemList').innerHTML = '';
-    let k = 0, c = 0, p = 0;
-    
+    let k = 0, c = 0, p = 0, html = '';
+
     currentLog.forEach((item, idx) => {
       k += item.kcal; c += item.carbs; p += item.protein;
-      $('itemList').innerHTML += `
+      html += `
         <div class="item-row">
           <div>
-            <div>${item.name} ${item.amount ? `<span style="color:var(--muted)">(${item.amount}g)</span>` : ''}</div>
+            <div>${WT.esc(item.name)} ${item.amount ? `<span style="color:var(--muted)">(${item.amount}g)</span>` : ''}</div>
             <div class="item-meta">${item.kcal} kcal | C: ${item.carbs.toFixed(1)}g | P: ${item.protein.toFixed(1)}g</div>
           </div>
           <button class="del-btn" onclick="removeItem(${idx})">✕</button>
         </div>`;
     });
 
-    if (loggedSportKcal > 0) {
-      $('itemList').innerHTML += `
-        <div class="item-row" style="border-top:1px dashed var(--line)">
+    sportEntries.forEach((s, idx) => {
+      html += `
+        <div class="item-row" ${idx===0 ? 'style="border-top:1px dashed var(--line)"' : ''}>
           <div>
             <div style="color:var(--accent)">🏃 Sport Workout Burn</div>
-            <div class="item-meta">-${loggedSportKcal} Active Energy Expenditure</div>
+            <div class="item-meta">-${s.kcal} Active Energy Expenditure</div>
           </div>
-          <button class="del-btn" onclick="removeSport()">✕</button>
+          <button class="del-btn" onclick="removeSport(${idx})">✕</button>
         </div>`;
-    }
+    });
 
-    const netKcal = Math.round(k - loggedSportKcal);
+    $('itemList').innerHTML = html;
+
+    const netKcal = Math.round(k - sportTotal());
     $('totalKcal').innerText = netKcal + ' kcal';
     $('totalCarbs').innerText = c.toFixed(1) + 'g';
     $('totalProtein').innerText = p.toFixed(1) + 'g';
@@ -193,7 +211,7 @@
     const percentage = Math.min((c / targetLimit) * 100, 100);
     const fill = $('gaugeFill');
     fill.style.width = percentage + '%';
-    
+
     $('gaugeValue').innerText = `${c.toFixed(1)} / ${targetLimit}g Limit`;
     if (c > targetLimit) {
       fill.style.backgroundColor = 'var(--hi)';
@@ -207,12 +225,10 @@
   }
 
   $('addBtn').onclick = () => {
-    const name = $('foodSelect').value;
+    const base = findFood($('foodSearch').value);
     const amount = parseFloat($('foodAmount').value);
-    if(!amount || amount <= 0) return;
-
-    const base = FOOD_DATABASE.find(f => f.name === name);
-    if(!base) return;
+    if(!base){ toast('Pick a food from the list first.', true); return; }
+    if(!amount || amount <= 0){ toast('Enter an amount in grams.', true); return; }
 
     const factor = amount / 100;
     currentLog.push({
@@ -224,6 +240,8 @@
     });
 
     $('foodAmount').value = '';
+    $('foodSearch').value = '';
+    $('foodHint').textContent = '';
     saveAndRefresh();
   };
 
@@ -234,7 +252,7 @@
     const protein = Math.round((parseFloat($('manualProtein').value) || 0) * 10) / 10;
 
     currentLog.push({ name, amount: null, kcal, carbs, protein });
-    
+
     $('manualName').value = '';
     $('manualKcal').value = '';
     $('manualCarbs').value = '';
@@ -245,28 +263,31 @@
   $('sportSaveBtn').onclick = async () => {
     const burn = Math.round(parseFloat($('sportKcal').value) || 0);
     if (burn <= 0) return;
-    
-    loggedSportKcal = burn;
+
+    sportEntries.push({ kcal: burn, note: 'Watch Activity Tracker' });
     $('sportKcal').value = '';
-    localStorage.setItem(`sport_${$('datePicker').value}`, loggedSportKcal);
+    saveSport();
     renderDay();
 
-    if(cfg.url && cfg.token) {
-      try {
-        await fetch(cfg.url, {
-          method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            token: cfg.token, action: 'add', table: 'sport',
-            date: $('datePicker').value, kcal: burn, note: 'Watch Activity Tracker'
-          })
-        });
-        toast('Sport sync success!');
-      } catch(e){}
+    const payload = { action: 'add', table: 'sport',
+      date: $('datePicker').value, kcal: burn, note: 'Watch Activity Tracker' };
+    try {
+      await WT.api(cfg, 'add', payload);
+      toast('Sport sync success!');
+    } catch(e) {
+      if(e.message !== 'not-configured') WT.queue(payload);
+      toast('Saved locally — will sync.', true);
     }
   };
 
   window.removeItem = (idx) => { currentLog.splice(idx, 1); saveAndRefresh(); };
-  window.removeSport = () => { loggedSportKcal = 0; localStorage.removeItem(`sport_${$('datePicker').value}`); renderDay(); };
+  window.removeSport = (idx) => { sportEntries.splice(idx, 1); saveSport(); renderDay(); };
+
+  function saveSport() {
+    const d = $('datePicker').value;
+    if(sportEntries.length) localStorage.setItem(`sport_${d}`, JSON.stringify(sportEntries));
+    else localStorage.removeItem(`sport_${d}`);
+  }
 
   function saveAndRefresh() {
     const d = $('datePicker').value;
@@ -277,7 +298,19 @@
   function loadLocalCache() {
     const d = $('datePicker').value;
     currentLog = JSON.parse(localStorage.getItem(`intake_${d}`) || '[]');
-    loggedSportKcal = parseFloat(localStorage.getItem(`sport_${d}`) || '0');
+    // sport: accept new array format and old single-number format
+    let raw = localStorage.getItem(`sport_${d}`);
+    sportEntries = [];
+    if(raw){
+      try{
+        const v = JSON.parse(raw);
+        if(Array.isArray(v)) sportEntries = v;
+        else if(typeof v === 'number' && v > 0) sportEntries = [{kcal: v, note: 'Watch Activity Tracker'}];
+      }catch(e){
+        const n = parseFloat(raw);
+        if(n > 0) sportEntries = [{kcal: n, note: 'Watch Activity Tracker'}];
+      }
+    }
     renderDay();
   }
 
@@ -289,26 +322,27 @@
   }
 
   $('saveBtn').onclick = async () => {
-    if(!cfg.url || !cfg.token) { toast('Set URL/Token configuration in Settings (⚙) first.', true); return; }
+    if(!cfg.url || !cfg.token) { toast('Set URL/Token in Settings (⚙ on Weight page) first.', true); return; }
     $('saveBtn').disabled = true;
-    
+
     let kcal = 0, carbs = 0, protein = 0;
     currentLog.forEach(i => { kcal += i.kcal; carbs += i.carbs; protein += i.protein; });
 
+    const payload = { action: 'add', table: 'intake', date: $('datePicker').value,
+      kcal: kcal, carbs_g: carbs, protein_g: protein, items_json: JSON.stringify(currentLog) };
     try {
-      const res = await fetch(cfg.url, {
-        method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          token: cfg.token, action: 'add', table: 'intake', date: $('datePicker').value,
-          kcal: kcal, carbs_g: carbs, protein_g: protein, items_json: JSON.stringify(currentLog)
-        })
-      });
-      const data = await res.json();
-      if(data.ok) toast('Synced directly to Cloud!');
-      else toast('Error: ' + data.error, true);
-    } catch(e) { toast('Saved offline locally.', true); }
+      await WT.api(cfg, 'add', payload);
+      toast('Synced directly to Cloud!');
+    } catch(e) {
+      if(e.message === 'not-configured'){ toast('Set URL/Token in Settings first.', true); }
+      else { WT.queue(payload); toast('Saved offline — queued for sync.', true); }
+    }
     finally { $('saveBtn').disabled = false; }
   };
+
+  // flush any queued writes when (re)opened or back online
+  window.addEventListener('online', () => WT.flushQueue(cfg));
+  WT.flushQueue(cfg);
 
   initDatabase();
   loadLocalCache();
