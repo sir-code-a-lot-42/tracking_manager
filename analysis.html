@@ -67,12 +67,15 @@
   <div id="content"></div>
 </div>
 
+<script src="config.js"></script>
 <script>
-const DATA_KEY='wt_cache_v1';const CFG_KEY='wt_cfg_v1';
-let rows=[];try{rows=JSON.parse(localStorage.getItem(DATA_KEY))||[]}catch(e){}
-let cfg={};try{cfg=JSON.parse(localStorage.getItem(CFG_KEY))||{}}catch(e){}
+// Data & config come from the shared module — fixes the old bug where this
+// page parsed the cache as a plain array and showed "No data yet".
+let rows=WT.loadWeight();
+let cfg=WT.loadCfg();
 const HEIGHT=(parseFloat(cfg.height)||168)/100;
-const GOALS=[90,80,69];const START=96;
+const GOALS=WT.GOALS;const START=WT.START;
+const GOAL_FINAL=GOALS[GOALS.length-1];
 const C=document.getElementById('content');
 
 function ewma(data,a=0.12){if(!data.length)return [];let m=data[0].kg;const out=[];
@@ -123,7 +126,7 @@ function render(){
         <div class="pct">${pct}%</div></div>
       <div class="info"><div class="t">${g} kg</div><div class="d">${eta}</div></div></div>`;
   }
-  html+='<div class="note">Forecast = linear regression on the smoothed trend of the last 3 weeks. Weight loss is rarely linear, so distant goals (69 kg) are rough estimates and shift as the trend flattens.</div></div>';
+  html+=`<div class="note">Forecast = linear regression on the smoothed trend of the last 3 weeks. Weight loss is rarely linear, so distant goals (${GOAL_FINAL} kg) are rough estimates and shift as the trend flattens.</div></div>`;
 
   const bmiPct=Math.max(0,Math.min(100,((bmi-15)/(40-15))*100));
   let bmiCat,col;
@@ -137,7 +140,7 @@ function render(){
       <span style="font-size:13px;font-weight:700;color:${col}">${bmiCat}</span></div>
     <div class="zone"><div class="mk" style="left:calc(${bmiPct}% - 1.5px)"></div></div>
     <div class="zlab"><span>15</span><span>18.5</span><span>25</span><span>30</span><span>40</span></div>
-    <div class="note">At ${Math.round(HEIGHT*100)} cm, normal weight starts ≈ ${(24.999*HEIGHT*HEIGHT).toFixed(1)} kg. Your 69 kg goal is BMI 24.4.</div></div>`;
+    <div class="note">At ${Math.round(HEIGHT*100)} cm, normal weight starts ≈ ${(24.999*HEIGHT*HEIGHT).toFixed(1)} kg. Your ${GOAL_FINAL} kg goal is BMI ${(GOAL_FINAL/(HEIGHT*HEIGHT)).toFixed(1)}.</div></div>`;
 
   C.innerHTML=html;
   drawChart(t,reg);
@@ -155,7 +158,7 @@ function drawChart(t,reg){
   const allT=data.map(d=>d.t).concat(projPts.map(p=>p.t));
   const allK=data.map(d=>d.kg).concat(data.map(d=>d.trend)).concat(projPts.map(p=>p.kg));
   let minT=Math.min(...allT),maxT=Math.max(...allT);if(minT===maxT)maxT=minT+86400000;
-  let minK=Math.min(...allK,69),maxK=Math.max(...allK);
+  let minK=Math.min(...allK,GOAL_FINAL),maxK=Math.max(...allK);
   const padK=(maxK-minK)*0.12||1;minK-=padK;maxK+=padK;
   const X=v=>padL+((v-minT)/(maxT-minT))*(W-padL-padR);
   const Y=k=>padT+(1-(k-minK)/(maxK-minK))*(H-padT-padB);
