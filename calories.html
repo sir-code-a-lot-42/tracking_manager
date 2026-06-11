@@ -97,8 +97,8 @@
 <div class="panel">
   <h3>Add Product Selection</h3>
   <div class="form-group">
-    <input type="text" id="foodSearch" list="foodList" placeholder="Search food… (type to filter)" autocomplete="off">
-    <datalist id="foodList"></datalist>
+    <select id="catSelect" style="width:42%"></select>
+    <select id="foodSelect"></select>
   </div>
   <div class="hint" id="foodHint"></div>
   <div class="form-group">
@@ -157,8 +157,21 @@
 
   function initDatabase() {
     FOOD_DATABASE.sort((a,b)=>a.name.localeCompare(b.name));
-    $('foodList').innerHTML = FOOD_DATABASE.map(f =>
-      `<option value="${WT.esc(f.name)}"></option>`).join('');
+    // category list: configured order first, then anything unknown
+    const present = [...new Set(FOOD_DATABASE.map(f => f.cat || 'Sonstiges'))];
+    const cats = (typeof FOOD_CATEGORIES !== 'undefined' ? FOOD_CATEGORIES : [])
+      .filter(c => present.includes(c))
+      .concat(present.filter(c => !(typeof FOOD_CATEGORIES !== 'undefined' && FOOD_CATEGORIES.includes(c))));
+    $('catSelect').innerHTML = cats.map(c => `<option value="${WT.esc(c)}">${WT.esc(c)}</option>`).join('');
+    fillFoods();
+  }
+
+  function fillFoods() {
+    const cat = $('catSelect').value;
+    const list = FOOD_DATABASE.filter(f => (f.cat || 'Sonstiges') === cat);
+    $('foodSelect').innerHTML = list.map(f =>
+      `<option value="${WT.esc(f.name)}">${WT.esc(f.name)}</option>`).join('');
+    updateHint();
   }
 
   function findFood(name){
@@ -166,10 +179,13 @@
     return FOOD_DATABASE.find(f => f.name.toLowerCase() === n);
   }
 
-  $('foodSearch').addEventListener('input', () => {
-    const f = findFood($('foodSearch').value);
+  function updateHint(){
+    const f = findFood($('foodSelect').value);
     $('foodHint').textContent = f ? `100 g: ${f.kcal} kcal · C ${f.carbs} g · P ${f.protein} g` : '';
-  });
+  }
+
+  $('catSelect').addEventListener('change', fillFoods);
+  $('foodSelect').addEventListener('change', updateHint);
 
   function sportTotal(){ return sportEntries.reduce((a,s)=>a + (parseFloat(s.kcal)||0), 0); }
 
@@ -225,9 +241,9 @@
   }
 
   $('addBtn').onclick = () => {
-    const base = findFood($('foodSearch').value);
+    const base = findFood($('foodSelect').value);
     const amount = parseFloat($('foodAmount').value);
-    if(!base){ toast('Pick a food from the list first.', true); return; }
+    if(!base){ toast('Pick a product first.', true); return; }
     if(!amount || amount <= 0){ toast('Enter an amount in grams.', true); return; }
 
     const factor = amount / 100;
@@ -240,8 +256,6 @@
     });
 
     $('foodAmount').value = '';
-    $('foodSearch').value = '';
-    $('foodHint').textContent = '';
     saveAndRefresh();
   };
 
