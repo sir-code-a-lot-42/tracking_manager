@@ -157,6 +157,7 @@
   <div class="link-row">
     <a href="analysis.html">History <span class="ar">→</span></a>
     <a href="calories.html">Calories <span class="ar">→</span></a>
+    <a href="training.html">Training <span class="ar">→</span></a>
   </div>
   <div class="foot">Stored in your Google Sheet · Goal 69 kg</div>
 </div>
@@ -277,7 +278,7 @@ async function pull(){
   if(!cfg.url||!cfg.token){setSync('err','Not set up — tap ⚙');return}
   setSync('busy','Loading…');
   try{const d=await WT.api(cfg,'read');rows=d.weight||[];WT.saveWeight(rows);
-    const c=WT.loadCacheObj();c.intake=d.intake||[];c.sport=d.sport||[];WT.saveCacheObj(c);
+    const c=WT.loadCacheObj();c.intake=d.intake||[];c.sport=d.sport||[];c.plan=d.plan||[];WT.saveCacheObj(c);
     refresh();setSync('ok','Synced')}
   catch(e){setSync('err','Offline — showing cached data');refresh()}}
 
