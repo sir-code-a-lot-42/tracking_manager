@@ -93,7 +93,10 @@
 </div>
 
 <div class="panel">
-  <h3>Week Plan</h3>
+  <h3 style="display:flex;justify-content:space-between;align-items:center">Week Plan
+    <button id="locBtn" style="background:none;border:1px solid var(--line);color:var(--muted);
+      border-radius:8px;padding:4px 9px;font-size:11px;cursor:pointer;text-transform:none;letter-spacing:0">📍 Set location</button>
+  </h3>
   <div id="weekView"></div>
 </div>
 
@@ -137,6 +140,42 @@
   let editMode=false;
   let weekOffset=0;          // 0 = current week
   let sessions=[];           // sessions of the displayed week
+  let weather=null;          // {'yyyy-mm-dd': {code,tmax,pp}} from Open-Meteo
+  const OUTDOOR=['bike','run','walk'];
+
+  // WMO weather codes → icon
+  function wIcon(c){
+    if(c===0)return'☀️'; if(c<=2)return'🌤'; if(c===3)return'☁️';
+    if(c<=48)return'🌫'; if(c<=57)return'🌦'; if(c<=67)return'🌧';
+    if(c<=77)return'🌨'; if(c<=82)return'🌧'; if(c<=86)return'🌨';
+    return'⛈';
+  }
+  function isWet(w){ return w && ((w.pp||0)>=50 || (w.code>=61&&w.code<=67) || (w.code>=80&&w.code<=99) || (w.code>=71&&w.code<=77)); }
+
+  async function loadWeather(force){
+    if(!cfg.lat||!cfg.lon){ $('locBtn').innerText='📍 Set location'; return; }
+    $('locBtn').innerText='📍 '+(cfg.place||'set');
+    try{
+      let c=null;
+      try{ c=JSON.parse(localStorage.getItem('wt_weather_v1')) }catch(e){}
+      if(!force && c && c.lat===cfg.lat && c.lon===cfg.lon && Date.now()-c.ts < 3*3600*1000){
+        weather=c.map; render(); return;
+      }
+      const url='https://api.open-meteo.com/v1/forecast?latitude='+cfg.lat+'&longitude='+cfg.lon+
+        '&daily=weathercode,temperature_2m_max,precipitation_probability_max&timezone=auto&forecast_days=14';
+      const r=await fetch(url);
+      const d=await r.json();
+      const map={};
+      const days=(d.daily&&d.daily.time)||[];
+      days.forEach((t,i)=>{ map[t]={
+        code:d.daily.weathercode[i],
+        tmax:Math.round(d.daily.temperature_2m_max[i]),
+        pp:d.daily.precipitation_probability_max?d.daily.precipitation_probability_max[i]:null }; });
+      weather=map;
+      localStorage.setItem('wt_weather_v1',JSON.stringify({ts:Date.now(),lat:cfg.lat,lon:cfg.lon,map}));
+      render();
+    }catch(e){ /* offline: keep whatever cached map we had */ }
+  }
 
   function isoLocal(d){ return d.toLocaleDateString('sv').substring(0,10); }
   function mondayOf(offset){
@@ -195,17 +234,20 @@
     let html='';
     for(let i=0;i<7;i++){
       const ds=dayDate(monday,i);
+      const wx=weather?weather[ds]:null;
+      const wxTxt=wx?` · ${wIcon(wx.code)} ${wx.tmax}°${wx.pp>=40?` 💧${wx.pp}%`:''}`:'';
       const list=sessions.map((s,idx)=>({s,idx})).filter(x=>x.s.day===i);
       html+=`<div class="day ${ds===today?'today':''}">
-        <div class="day-h"><span>${DAYS[i]}</span><span>${fmt(ds)}</span></div>`;
+        <div class="day-h"><span>${DAYS[i]}</span><span>${fmt(ds)}${wxTxt}</span></div>`;
       if(!list.length) html+='<div class="none">—</div>';
       for(const x of list){
         const s=x.s, idx=x.idx;
+        const indoorHint=(OUTDOOR.includes(s.type)&&isWet(wx))?` · <span style="color:var(--mid)">🏠 indoor?</span>`:'';
         html+=`<div class="sess ${s.done?'done':''}">
           <div class="cb" onclick="toggleDone(${idx})">✓</div>
           <div class="info">
             <div class="t">${TYPES[s.type]||'✦'} ${WT.esc(s.title||s.type)}</div>
-            <div class="m">${s.min||0} min${s.kcal?` · ⚡ ${s.kcal} kcal logged`:''}</div>
+            <div class="m">${s.min||0} min${s.kcal?` · ⚡ ${s.kcal} kcal logged`:''}${indoorHint}</div>
           </div>
           ${s.done&&!s.kcal?`<button class="burn" onclick="logBurn(${idx})">⚡ kcal</button>`:''}
           ${editMode?`<button class="del" onclick="delSess(${idx})">✕</button>`:''}
@@ -292,6 +334,23 @@
     t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);
   }
 
+  $('locBtn').onclick=async()=>{
+    const name=prompt('City for the weather forecast:', cfg.place||'');
+    if(!name)return;
+    try{
+      const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+
+        encodeURIComponent(name.trim())+'&count=1&language=en&format=json');
+      const d=await r.json();
+      if(!d.results||!d.results.length){ toast('City not found',true); return; }
+      const g=d.results[0];
+      cfg.lat=g.latitude; cfg.lon=g.longitude;
+      cfg.place=g.name+(g.country_code?' ('+g.country_code+')':'');
+      WT.saveCfg(cfg);
+      toast('📍 '+g.name+' ✓');
+      loadWeather(true);
+    }catch(e){ toast('Lookup failed — offline?',true); }
+  };
+
   // init
   $('sDay').innerHTML=DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
   sessions=getWeek(mondayOf(0));
@@ -299,6 +358,7 @@
   WT.flushQueue(cfg);
   window.addEventListener('online',()=>WT.flushQueue(cfg));
   pull();
+  loadWeather();
 </script>
 </body>
 </html>
