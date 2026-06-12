@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#101216">
+<title>Training Plan</title>
+<style>
+  :root{
+    --bg:#101216; --panel:#191c22; --panel-2:#20242c; --line:#2c313b;
+    --ink:#f3f5f8; --muted:#8a92a0; --faint:#5a616d;
+    --accent:#2b8fff; --accent-ink:#04203f; --good:#3ec98a; --mid:#f0a83c; --hi:#e7563f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--ink);min-height:100dvh;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    padding:20px;padding-bottom:80px}
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .week-nav{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .week-nav button{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    width:38px;height:38px;border-radius:11px;font-size:17px;cursor:pointer}
+  .week-nav .label{flex:1;text-align:center;font-size:14px;font-weight:bold}
+  .week-nav .label small{display:block;font-size:11px;color:var(--muted);font-weight:normal;margin-top:2px}
+
+  .grid-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  .stat-card{background:var(--panel);padding:12px;border-radius:12px;text-align:center;border:1px solid var(--line)}
+  .stat-val{font-size:18px;font-weight:bold;margin-top:4px;font-variant-numeric:tabular-nums}
+  .stat-sub{font-size:10px;color:var(--faint);margin-top:3px}
+
+  .panel{background:var(--panel);border-radius:16px;padding:16px;margin-bottom:16px;border:1px solid var(--line)}
+  h3{margin-bottom:12px;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)}
+
+  .day{border-top:1px solid var(--line);padding:9px 0}
+  .day:first-of-type{border-top:none;padding-top:0}
+  .day-h{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);
+    text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+  .day.today .day-h{color:var(--accent)}
+  .sess{display:flex;align-items:center;gap:11px;padding:7px 0}
+  .sess .cb{width:24px;height:24px;border-radius:7px;border:1.5px solid var(--line);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;color:transparent;background:var(--panel-2)}
+  .sess.done .cb{background:var(--good);border-color:var(--good);color:var(--accent-ink)}
+  .sess .info{flex:1;min-width:0}
+  .sess .t{font-size:14px;font-weight:600}
+  .sess.done .t{color:var(--muted);text-decoration:line-through}
+  .sess .m{font-size:11px;color:var(--muted)}
+  .sess .burn{background:transparent;border:1px solid var(--line);color:var(--mid);border-radius:8px;
+    padding:5px 9px;font-size:12px;cursor:pointer;flex:none}
+  .sess .del{background:transparent;border:none;color:var(--hi);font-size:14px;padding:4px 8px;cursor:pointer;flex:none}
+  .none{font-size:12px;color:var(--faint);padding:3px 0}
+
+  .form-group{margin-bottom:10px;display:flex;gap:8px}
+  select,input,button.btn{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    padding:12px;border-radius:8px;font-size:15px;outline:none;width:100%}
+  button.btn{background:var(--accent);color:var(--accent-ink);font-weight:bold;cursor:pointer;border:none}
+  button.ghost{background:var(--panel-2);color:var(--accent);border:1px solid var(--line);font-weight:bold;
+    padding:12px;border-radius:8px;font-size:14px;cursor:pointer;width:100%}
+  .toggle-edit{background:none;border:1px solid var(--line);color:var(--accent);border-radius:10px;
+    padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer}
+
+  .footer-nav{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);
+    display:flex;justify-content:space-around;padding:10px env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
+  .footer-nav a{color:var(--muted);text-decoration:none;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .footer-nav a.active{color:var(--accent)}
+  #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--panel-2);
+    padding:10px 20px;border-radius:20px;border:1px solid var(--line);font-size:14px;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:99}
+  #toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>Training</h2>
+  <button class="toggle-edit" id="editBtn">Edit plan</button>
+</div>
+
+<div class="week-nav">
+  <button id="prevW">‹</button>
+  <div class="label"><span id="weekLabel">—</span><small id="weekRange"></small></div>
+  <button id="nextW">›</button>
+</div>
+
+<div class="grid-stats">
+  <div class="stat-card">
+    <div style="font-size:11px;color:var(--muted)">🏋️ Strength</div>
+    <div class="stat-val" id="strStat">0 / 0 min</div>
+    <div class="stat-sub">done / planned</div>
+  </div>
+  <div class="stat-card">
+    <div style="font-size:11px;color:var(--muted)">🚴 Endurance</div>
+    <div class="stat-val" id="endStat">0 / 0 units</div>
+    <div class="stat-sub">done / planned</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Week Plan</h3>
+  <div id="weekView"></div>
+</div>
+
+<div class="panel" id="editPanel" style="display:none">
+  <h3>Add Session</h3>
+  <div class="form-group">
+    <select id="sDay"></select>
+    <select id="sType">
+      <option value="strength">🏋️ Strength</option>
+      <option value="bike">🚴 Bike</option>
+      <option value="run">🏃 Run</option>
+      <option value="walk">🚶 Walk</option>
+      <option value="other">✦ Other</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <input type="text" id="sTitle" placeholder="Title (optional, e.g. Gymondo upper body)">
+    <input type="number" id="sMin" placeholder="min" min="5" step="5" style="width:34%">
+  </div>
+  <button class="btn" id="sAdd">Add to plan</button>
+  <div style="height:8px"></div>
+  <button class="ghost" id="copyPrev">Copy previous week</button>
+</div>
+
+<div id="toast"></div>
+
+<div class="footer-nav">
+  <a href="index.html">⚖️ Weight</a>
+  <a href="analysis.html">📈 Analysis</a>
+  <a href="calories.html">🔥 Calories</a>
+  <a href="training.html" class="active">🏋️ Training</a>
+</div>
+
+<script src="config.js"></script>
+<script>
+  const $=id=>document.getElementById(id);
+  let cfg = WT.loadCfg();
+  const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const TYPES={strength:'🏋️',bike:'🚴',run:'🏃',walk:'🚶',other:'✦'};
+  const ENDURANCE=['bike','run','walk'];
+  let editMode=false;
+  let weekOffset=0;          // 0 = current week
+  let sessions=[];           // sessions of the displayed week
+
+  function isoLocal(d){ return d.toLocaleDateString('sv').substring(0,10); }
+  function mondayOf(offset){
+    const d=new Date(); d.setDate(d.getDate()-((d.getDay()+6)%7)+offset*7);
+    return isoLocal(d);
+  }
+  function dayDate(monday,i){ const d=new Date(monday+'T00:00:00'); d.setDate(d.getDate()+i); return isoLocal(d); }
+  function fmt(ds){ return new Date(ds+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
+
+  // ----- plan storage: one Sheet row per week, sessions as JSON -----
+  function getWeek(monday){
+    const rows=WT.loadCacheObj().plan||[];
+    const row=rows.find(r=>r.date===monday);
+    if(!row) return [];
+    try{ const s=JSON.parse(row.sessions_json||'[]'); return Array.isArray(s)?s:[] }catch(e){ return [] }
+  }
+  async function saveWeek(monday,sess){
+    const c=WT.loadCacheObj();
+    c.plan=c.plan||[];
+    const i=c.plan.findIndex(r=>r.date===monday);
+    const row={date:monday,sessions_json:JSON.stringify(sess),note:'',logged_at:new Date().toISOString()};
+    if(i>=0)c.plan[i]=row;else c.plan.push(row);
+    WT.saveCacheObj(c);
+    const payload={action:'add',table:'plan',date:monday,sessions_json:row.sessions_json};
+    try{ await WT.api(cfg,'add',payload); }
+    catch(e){ if(e.message!=='not-configured'){ WT.queue(payload); toast('Saved offline — will sync',true); } }
+  }
+
+  async function pull(){
+    if(!cfg.url||!cfg.token)return;
+    try{
+      const d=await WT.api(cfg,'read');
+      const c=WT.loadCacheObj();
+      c.weight=d.weight||[];c.intake=d.intake||[];c.sport=d.sport||[];c.plan=d.plan||[];
+      WT.saveCacheObj(c);
+      sessions=getWeek(mondayOf(weekOffset));
+      render();
+    }catch(e){}
+  }
+
+  function stats(){
+    let sP=0,sD=0,eP=0,eD=0;
+    for(const s of sessions){
+      if(s.type==='strength'){ sP+=s.min||0; if(s.done)sD+=s.min||0; }
+      else if(ENDURANCE.includes(s.type)){ eP++; if(s.done)eD++; }
+    }
+    $('strStat').innerText=`${sD} / ${sP} min`;
+    $('endStat').innerText=`${eD} / ${eP} units`;
+  }
+
+  function render(){
+    const monday=mondayOf(weekOffset);
+    $('weekLabel').innerText = weekOffset===0?'This week':(weekOffset===-1?'Last week':(weekOffset===1?'Next week':(weekOffset>0?'+':'')+weekOffset+' weeks'));
+    $('weekRange').innerText = fmt(monday)+' – '+fmt(dayDate(monday,6));
+    const today=isoLocal(new Date());
+    let html='';
+    for(let i=0;i<7;i++){
+      const ds=dayDate(monday,i);
+      const list=sessions.map((s,idx)=>({s,idx})).filter(x=>x.s.day===i);
+      html+=`<div class="day ${ds===today?'today':''}">
+        <div class="day-h"><span>${DAYS[i]}</span><span>${fmt(ds)}</span></div>`;
+      if(!list.length) html+='<div class="none">—</div>';
+      for(const x of list){
+        const s=x.s, idx=x.idx;
+        html+=`<div class="sess ${s.done?'done':''}">
+          <div class="cb" onclick="toggleDone(${idx})">✓</div>
+          <div class="info">
+            <div class="t">${TYPES[s.type]||'✦'} ${WT.esc(s.title||s.type)}</div>
+            <div class="m">${s.min||0} min${s.kcal?` · ⚡ ${s.kcal} kcal logged`:''}</div>
+          </div>
+          ${s.done&&!s.kcal?`<button class="burn" onclick="logBurn(${idx})">⚡ kcal</button>`:''}
+          ${editMode?`<button class="del" onclick="delSess(${idx})">✕</button>`:''}
+        </div>`;
+      }
+      html+='</div>';
+    }
+    $('weekView').innerHTML=html;
+    stats();
+  }
+
+  window.toggleDone=(idx)=>{
+    sessions[idx].done=!sessions[idx].done;
+    saveWeek(mondayOf(weekOffset),sessions);
+    render();
+  };
+
+  window.delSess=(idx)=>{
+    sessions.splice(idx,1);
+    saveWeek(mondayOf(weekOffset),sessions);
+    render();
+  };
+
+  // optional: log the watch burn of a completed session into the existing sport flow
+  window.logBurn=async(idx)=>{
+    const v=prompt('Active kcal from your watch:');
+    const burn=Math.round(parseFloat(v));
+    if(!burn||burn<=0)return;
+    const s=sessions[idx];
+    s.kcal=burn;
+    saveWeek(mondayOf(weekOffset),sessions);
+    const ds=dayDate(mondayOf(weekOffset),s.day);
+    // local sport entry (same format as calories.html)
+    let arr=[];
+    try{const raw=localStorage.getItem(`sport_${ds}`);
+      if(raw){const p=JSON.parse(raw);arr=Array.isArray(p)?p:(p>0?[{kcal:p,note:'Watch Activity Tracker'}]:[])}}catch(e){}
+    arr.push({kcal:burn,note:'Training: '+(s.title||s.type)});
+    localStorage.setItem(`sport_${ds}`,JSON.stringify(arr));
+    const payload={action:'add',table:'sport',date:ds,kcal:burn,note:'Training: '+(s.title||s.type)};
+    try{ await WT.api(cfg,'add',payload); toast('Burn logged ✓'); }
+    catch(e){ if(e.message!=='not-configured')WT.queue(payload); toast('Burn saved offline',true); }
+    render();
+  };
+
+  $('sAdd').onclick=()=>{
+    const min=parseInt($('sMin').value);
+    if(!min||min<=0){toast('Enter minutes',true);return}
+    sessions.push({
+      id:Date.now(),
+      day:parseInt($('sDay').value),
+      type:$('sType').value,
+      title:$('sTitle').value.trim(),
+      min:min,
+      done:false
+    });
+    $('sTitle').value='';$('sMin').value='';
+    saveWeek(mondayOf(weekOffset),sessions);
+    render();
+  };
+
+  $('copyPrev').onclick=()=>{
+    const prev=getWeek(mondayOf(weekOffset-1));
+    if(!prev.length){toast('Previous week is empty',true);return}
+    sessions=prev.map(s=>({id:Date.now()+Math.random(),day:s.day,type:s.type,title:s.title,min:s.min,done:false}));
+    saveWeek(mondayOf(weekOffset),sessions);
+    render();
+    toast('Copied ✓');
+  };
+
+  $('editBtn').onclick=()=>{
+    editMode=!editMode;
+    $('editBtn').innerText=editMode?'Done':'Edit plan';
+    $('editPanel').style.display=editMode?'block':'none';
+    render();
+  };
+
+  function switchWeek(d){ weekOffset+=d; sessions=getWeek(mondayOf(weekOffset)); render(); }
+  $('prevW').onclick=()=>switchWeek(-1);
+  $('nextW').onclick=()=>switchWeek(1);
+
+  function toast(msg,err=false){
+    const t=$('toast');t.innerText=msg;
+    t.style.borderColor=err?'var(--hi)':'var(--good)';
+    t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);
+  }
+
+  // init
+  $('sDay').innerHTML=DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
+  sessions=getWeek(mondayOf(0));
+  render();
+  WT.flushQueue(cfg);
+  window.addEventListener('online',()=>WT.flushQueue(cfg));
+  pull();
+</script>
+</body>
+</html>
