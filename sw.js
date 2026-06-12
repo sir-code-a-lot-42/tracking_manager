@@ -1,6 +1,6 @@
-const CACHE='gewicht-v5';
+const CACHE='gewicht-v6';
 const SHELL=['index.html','analysis.html','calories.html','calories-analysis.html',
-  'config.js','foods.js','manifest.json','icon-180.png','icon-192.png','icon-512.png'];
+  'training.html','config.js','foods.js','manifest.json','icon-180.png','icon-192.png','icon-512.png'];
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));
