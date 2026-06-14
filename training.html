@@ -70,7 +70,10 @@
 
 <div class="header">
   <h2>Training</h2>
-  <button class="toggle-edit" id="editBtn">Edit plan</button>
+  <div style="display:flex;gap:8px">
+    <button class="toggle-edit" id="syncBtn">⟳ Sync</button>
+    <button class="toggle-edit" id="editBtn">Edit plan</button>
+  </div>
 </div>
 
 <div class="week-nav">
@@ -315,6 +318,22 @@
     saveWeek(mondayOf(weekOffset),sessions);
     render();
     toast('Copied ✓');
+  };
+
+  $('syncBtn').onclick=async()=>{
+    if(!cfg.url||!cfg.token){ toast('Set URL/Token first (⚙ on Weight page)',true); return; }
+    $('syncBtn').disabled=true; $('syncBtn').innerText='⟳ …';
+    try{
+      const d=await WT.api(cfg,'syncStrava');
+      const c=WT.loadCacheObj();
+      c.weight=d.weight||[];c.intake=d.intake||[];c.sport=d.sport||[];c.plan=d.plan||[];c.activities=d.activities||[];
+      WT.saveCacheObj(c);
+      const s=d.strava||{};
+      if(s.ok) toast(s.imported>0?`Synced ✓ ${s.imported} new`:'Up to date ✓');
+      else toast('Strava: '+(s.error||'error'),true);
+    }catch(e){
+      toast(e.message==='not-configured'?'Set URL/Token first':'Sync failed — offline?',true);
+    }finally{ $('syncBtn').disabled=false; $('syncBtn').innerText='⟳ Sync'; }
   };
 
   $('editBtn').onclick=()=>{
