@@ -1,0 +1,59 @@
+# AI Coach Briefing — standing context
+
+*Keep this file. Paste it (or its key points) together with your data each time you
+want the next training block adjusted. Update it whenever something durable changes.*
+
+---
+
+## Boundaries (read first)
+- The AI coach optimises **training** only. It does **not** replace medical supervision.
+- Off-limits for the AI, always — these stay with the physician:
+  cardiovascular clearance for long/hard efforts, the fasting/keto-vs-endurance
+  fuelling decision, anything involving symptoms (chest pressure, breathlessness,
+  dizziness), medication, or injury/illness management.
+- The AI works **within the envelope the physician approves**. If the physician set a
+  ceiling, the coach stays under it even if the data "looks ready" for more.
+
+## Athlete snapshot
+- Goal event: **125 km / ~2000 hm road ride, ~7 h**, on **Sun 12 Jul 2026**.
+- Has ridden this exact route many times before — neuromuscular/pacing memory intact.
+- Currently deconditioned ("out of shape") and up some weight vs last year's ride.
+- Longer-term: weight loss toward ~69 kg (BMI ~24); keto + supervised fasting days.
+- Height 168 cm. Protein goal 1.8 g/kg current weight.
+- No power meter; no cadence sensor. HR data available. Strength via Gymondo dumbbells.
+- Strava sport_type + `trainer` flag distinguish indoor vs outdoor rides.
+
+## Training principles in force (this block)
+- **Polarised / mostly easy**: ~80% Zone 2, conversational pace. Easy means easy.
+- **One protected long ride per week** — the key session; never arrive at it tired.
+- **Progress long-ride distance/climbing gradually**; weekly load step ~10% guideline.
+- **Tempo (Z3) = small dose**, midweek, controlled. Stop if form falls apart.
+- **Strength light & supportive**, kept clear of the long ride; never fatiguing for it.
+- **Taper hard** into the event — final week sheds fatigue, doesn't add fitness.
+- **Fuelling**: long rides need carbohydrate (~60 g/h); never fast a long/hard ride.
+
+## Hard scheduling constraints
+- Rest day: **Tuesday**.
+- Training week starts **Monday**.
+- Fasting (soup) days must fall on rest/easy days, **never on or next to** a long/
+  hard ride. (Confirm current fasting schedule each upload — it's physician-set.)
+- Days unavailable for training this block: _(fill in, e.g. work travel)_
+
+## What to send each check-in
+1. **Google Sheet** — whole file, or at least tabs: `activities`, `weight`, `plan`
+   (add `intake`/`sport` when fuelling/fasting is relevant — it is for this block).
+2. **Subjective notes** (this is what makes coaching good, not just the numbers):
+   - How sessions felt — RPE, legs fresh/heavy, motivation.
+   - Sleep and general life stress this week.
+   - Anything the physician changed or advised.
+   - Any niggles, pain, illness — flag even if minor.
+   - Any change to fasting/keto schedule.
+3. **What you want from this cycle** — e.g. "adjust next week", "the long ride felt
+   awful, help", "physician capped me at 90 min sessions".
+
+## How the coach should respond
+- Read planned vs actual; read HR-at-effort trend and relative-effort load.
+- Adjust the **upcoming** week(s) as a paste-ready `plan-event.tsv` for the Sheet.
+- Explain the reasoning briefly so it can be evaluated by athlete + physician.
+- Prefer **damage control / fine-tuning** in a short block over big restructuring.
+- Flag anything that should go to the physician rather than be solved by training.
