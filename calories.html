@@ -94,6 +94,16 @@
   </div>
 </div>
 
+<div class="gauge-container">
+  <div class="gauge-meta">
+    <span id="proteinStatus">Protein Goal</span>
+    <span id="proteinValue">0 / 0g</span>
+  </div>
+  <div class="gauge-bar">
+    <div id="proteinFill" class="gauge-fill"></div>
+  </div>
+</div>
+
 <div class="panel">
   <h3>Add Product Selection</h3>
   <div class="form-group">
@@ -239,6 +249,30 @@
       $('gaugeStatus').innerText = "Safe: Ketosis Maintained";
       $('gaugeStatus').style.color = 'var(--good)';
     }
+
+    // Render Protein Gauge — goal = latest synced weight × 1.8 g/kg
+    const kg = WT.latestWeight();
+    const pfill = $('proteinFill');
+    if (kg) {
+      const proteinGoal = Math.round(kg * 1.8);
+      const ppct = Math.min((p / proteinGoal) * 100, 100);
+      pfill.style.width = ppct + '%';
+      $('proteinValue').innerText = `${p.toFixed(0)} / ${proteinGoal}g`;
+      if (p >= proteinGoal) {
+        pfill.style.backgroundColor = 'var(--good)';
+        $('proteinStatus').innerText = "Protein Goal Reached ✓";
+        $('proteinStatus').style.color = 'var(--good)';
+      } else {
+        pfill.style.backgroundColor = 'var(--mid)';
+        $('proteinStatus').innerText = "Protein Goal";
+        $('proteinStatus').style.color = 'var(--mid)';
+      }
+    } else {
+      pfill.style.width = '0%';
+      $('proteinValue').innerText = `${p.toFixed(0)} / — g`;
+      $('proteinStatus').innerText = "Protein (log weight first)";
+      $('proteinStatus').style.color = 'var(--muted)';
+    }
   }
 
   $('addBtn').onclick = () => {
@@ -361,6 +395,22 @@
 
   initDatabase();
   loadLocalCache();
+
+  // Refresh the cached weight in the background so the protein goal (weight × 1.8)
+  // reflects the latest entry even if the Weight page wasn't opened recently.
+  (async () => {
+    if (!cfg.url || !cfg.token) return;
+    try {
+      const d = await WT.api(cfg, 'read');
+      const c = WT.loadCacheObj();
+      c.weight = d.weight || c.weight; c.intake = d.intake || c.intake;
+      c.sport = d.sport || c.sport; c.plan = d.plan || c.plan;
+      if (d.activities) c.activities = d.activities;
+      WT.saveCacheObj(c);
+      renderDay();   // re-render with up-to-date weight
+    } catch (e) { /* offline: keep cached weight */ }
+  })();
+
 </script>
 </body>
 </html>
