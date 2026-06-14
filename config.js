@@ -4,7 +4,7 @@
 // energy-expenditure model. Edit constants here, nowhere else.
 // ============================================================
 const WT = (() => {
-  const APP_VERSION = 'v7';        // bump together with the sw.js CACHE name
+  const APP_VERSION = 'v9';        // bump together with the sw.js CACHE name
   const CFG_KEY  = 'wt_cfg_v1';    // settings (url, token, height, age, sex, pal, base, sim targets)
   const DATA_KEY = 'wt_cache_v1';  // cached sheet data: { weight:[], intake:[], sport:[] }
   const QUEUE_KEY= 'wt_queue_v1';  // pending offline writes
