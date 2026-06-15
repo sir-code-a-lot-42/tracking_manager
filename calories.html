@@ -208,7 +208,8 @@
   $('catSelect').addEventListener('change', fillFoods);
   $('foodSelect').addEventListener('change', updateHint);
 
-  function sportTotal(){ return sportEntries.reduce((a,s)=>a + (parseFloat(s.kcal)||0), 0); }
+  // Total sport burn for the selected day (synced Strava/Sheet preferred, else local).
+  function sportTotal(){ return WT.sportKcalFor($('datePicker').value); }
 
   function renderDay() {
     let k = 0, c = 0, p = 0, html = '';
@@ -225,16 +226,33 @@
         </div>`;
     });
 
-    sportEntries.forEach((s, idx) => {
-      html += `
-        <div class="item-row" ${idx===0 ? 'style="border-top:1px dashed var(--line)"' : ''}>
-          <div>
-            <div style="color:var(--accent)">🏃 Sport Workout Burn</div>
-            <div class="item-meta">-${s.kcal} Active Energy Expenditure</div>
-          </div>
-          <button class="del-btn" onclick="removeSport(${idx})">✕</button>
-        </div>`;
-    });
+    const d = $('datePicker').value;
+    const synced = WT.syncedSportKcal(d);   // null if no synced row for this day
+    if (synced !== null) {
+      // Synced Sheet row is the source of truth (includes Strava + any synced manual).
+      // Shown read-only; editing happens via Strava / the Sheet, not deletable here.
+      if (synced > 0) {
+        html += `
+          <div class="item-row" style="border-top:1px dashed var(--line)">
+            <div>
+              <div style="color:var(--accent)">⌚ Synced Workout Burn</div>
+              <div class="item-meta">-${Math.round(synced)} kcal · from Strava / Sheet</div>
+            </div>
+          </div>`;
+      }
+    } else {
+      // No synced row yet — show local manual entries (deletable).
+      sportEntries.forEach((s, idx) => {
+        html += `
+          <div class="item-row" ${idx===0 ? 'style="border-top:1px dashed var(--line)"' : ''}>
+            <div>
+              <div style="color:var(--accent)">🏃 Sport Workout Burn</div>
+              <div class="item-meta">-${s.kcal} Active Energy Expenditure</div>
+            </div>
+            <button class="del-btn" onclick="removeSport(${idx})">✕</button>
+          </div>`;
+      });
+    }
 
     $('itemList').innerHTML = html;
 
