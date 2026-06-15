@@ -18,6 +18,10 @@ const FOOD_DATABASE = [
   // --- Mushrooms ---
   { name: "Mushrooms (white)",  cat: "Mushrooms",  kcal: 15,  carbs: 0.6,  protein: 2.7 },
 
+  // --- Diary Products ---
+  { name: "Skyr",  cat: "Diary Products",  kcal: 58,  carbs: 4,  protein: 9.5 },
+  { name: "Greek Yoghurt 10%",  cat: "Diary Products",  kcal: 117,  carbs: 3.6,  protein: 3.2 },
+  
   // --- Fruit ---
   { name: "Avocado",            cat: "Fruit",      kcal: 130, carbs: 0.4,  protein: 1.9 },
   { name: "Apple",              cat: "Fruit",      kcal: 52,  carbs: 14.0, protein: 0.3 },
