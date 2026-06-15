@@ -21,6 +21,7 @@ const FOOD_DATABASE = [
   // --- Fruit ---
   { name: "Avocado",            cat: "Fruit",      kcal: 130, carbs: 0.4,  protein: 1.9 },
   { name: "Apple",              cat: "Fruit",      kcal: 52,  carbs: 14.0, protein: 0.3 },
+  { name: "Apricot",            cat: "Fruit",      kcal: 48,  carbs: 9.0,  protein: 1.4 },
   { name: "Pear",               cat: "Fruit",      kcal: 52,  carbs: 12.4, protein: 0.4 },
   { name: "Banana",             cat: "Fruit",      kcal: 95,  carbs: 23.0, protein: 1.2 },
   { name: "Papaya",             cat: "Fruit",      kcal: 32,  carbs: 7.1,  protein: 0.5 },
