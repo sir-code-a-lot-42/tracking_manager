@@ -188,6 +188,10 @@
     </div>
     <div class="field"><label>Base rate fallback (kcal/day)</label>
       <input type="number" id="cfgBase" placeholder="2500"></div>
+    <div class="field"><label>Carb limit (g/day)</label>
+      <input type="number" id="cfgCarbLimit" placeholder="50"></div>
+    <div class="field"><label>Protein goal (g per kg body weight)</label>
+      <input type="number" id="cfgProteinFactor" step="0.1" placeholder="1.8"></div>
     <a href="strava.html" style="display:block;text-align:center;background:#fc4c02;color:#fff;
       border-radius:10px;padding:13px;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:14px">⌚ Connect Strava</a>
     <div class="sheet-actions">
@@ -309,6 +313,8 @@ async function flushAndPull(){
 function openCfg(){$('cfgUrl').value=cfg.url||'';$('cfgToken').value=cfg.token||'';
   $('cfgHeight').value=cfg.height||HEIGHT_DEFAULT;$('cfgBase').value=cfg.base||2500;
   $('cfgAge').value=cfg.age||'';$('cfgSex').value=cfg.sex||'';$('cfgPal').value=cfg.pal||1.4;
+  $('cfgCarbLimit').value=cfg.carbLimit||50;
+  $('cfgProteinFactor').value=cfg.proteinFactor||1.8;
   $('scrim').classList.add('show')}
 function closeCfg(){$('scrim').classList.remove('show')}
 $('gear').onclick=openCfg;$('cfgCancel').onclick=closeCfg;
@@ -319,6 +325,8 @@ $('cfgSave').onclick=()=>{cfg.url=$('cfgUrl').value.trim();cfg.token=$('cfgToken
   cfg.age=parseFloat($('cfgAge').value)||'';
   cfg.sex=$('cfgSex').value||'';
   cfg.pal=parseFloat($('cfgPal').value)||1.4;
+  cfg.carbLimit=parseFloat($('cfgCarbLimit').value)||50;
+  cfg.proteinFactor=parseFloat($('cfgProteinFactor').value)||1.8;
   WT.saveCfg(cfg);closeCfg();toast('Saved ✓');flushAndPull()};
 $('todayBtn').onclick=setToday;$('save').onclick=save;
 $('kg').addEventListener('keydown',e=>{if(e.key==='Enter')save()});
