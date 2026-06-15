@@ -297,11 +297,12 @@
       $('gaugeStatus').style.color = 'var(--good)';
     }
 
-    // Render Protein Gauge — goal = latest synced weight × 1.8 g/kg
+    // Render Protein Gauge — goal = latest synced weight × adjustable factor (default 1.8 g/kg)
     const kg = WT.latestWeight();
     const pfill = $('proteinFill');
     if (kg) {
-      const proteinGoal = Math.round(kg * 1.8);
+      const proteinFactor = parseFloat(cfg.proteinFactor) || 1.8;
+      const proteinGoal = Math.round(kg * proteinFactor);
       const ppct = Math.min((p / proteinGoal) * 100, 100);
       pfill.style.width = ppct + '%';
       $('proteinValue').innerText = `${p.toFixed(0)} / ${proteinGoal}g`;
