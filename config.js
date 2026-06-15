@@ -4,7 +4,7 @@
 // energy-expenditure model. Edit constants here, nowhere else.
 // ============================================================
 const WT = (() => {
-  const APP_VERSION = 'v13';        // bump together with the sw.js CACHE name
+  const APP_VERSION = 'v14';        // bump together with the sw.js CACHE name
   const CFG_KEY  = 'wt_cfg_v1';    // settings (url, token, height, age, sex, pal, base, sim targets)
   const DATA_KEY = 'wt_cache_v1';  // cached sheet data: { weight:[], intake:[], sport:[] }
   const QUEUE_KEY= 'wt_queue_v1';  // pending offline writes
@@ -122,7 +122,38 @@ const WT = (() => {
     return kcalTargets(cfg)[di];
   }
 
+  // ---------- daily sport burn ----------
+  // Total sport kcal for a date, merging the synced Sheet `sport` rollup with any
+  // local (not-yet-synced) manual entries. The Sheet rollup is the source of truth
+  // when a row exists for that date (it already includes Strava + synced manual
+  // burns); local entries are used only as a fallback when nothing is synced yet,
+  // so manual + Strava on the same day don't double-count.
+  function localSportKcal(dateStr){
+    let raw = null;
+    try{ raw = localStorage.getItem('sport_' + dateStr); }catch(e){}
+    if(!raw) return 0;
+    try{
+      const v = JSON.parse(raw);
+      if(Array.isArray(v)) return v.reduce(function(a,s){ return a + (parseFloat(s.kcal)||0); }, 0);
+      if(typeof v === 'number') return v > 0 ? v : 0;
+    }catch(e){ const n = parseFloat(raw); return n > 0 ? n : 0; }
+    return 0;
+  }
+  function syncedSportKcal(dateStr){
+    const rows = (loadCacheObj().sport) || [];
+    let total = 0, found = false;
+    rows.forEach(function(r){
+      if(String(r.date) === dateStr){ total += parseFloat(r.kcal) || 0; found = true; }
+    });
+    return found ? total : null;   // null = no synced row for this date
+  }
+  function sportKcalFor(dateStr){
+    const synced = syncedSportKcal(dateStr);
+    return synced !== null ? synced : localSportKcal(dateStr);
+  }
+
   return { APP_VERSION, CFG_KEY, DATA_KEY, START, GOALS,
            loadCfg, saveCfg, loadCacheObj, saveCacheObj, loadWeight, saveWeight, latestWeight,
-           esc, bmr, tdee, kcalTargets, kcalTargetFor, api, queue, flushQueue, loadQueue };
+           esc, bmr, tdee, kcalTargets, kcalTargetFor, localSportKcal, syncedSportKcal, sportKcalFor,
+           api, queue, flushQueue, loadQueue };
 })();
