@@ -4,7 +4,7 @@
 // energy-expenditure model. Edit constants here, nowhere else.
 // ============================================================
 const WT = (() => {
-  const APP_VERSION = 'v10';        // bump together with the sw.js CACHE name
+  const APP_VERSION = 'v12';        // bump together with the sw.js CACHE name
   const CFG_KEY  = 'wt_cfg_v1';    // settings (url, token, height, age, sex, pal, base, sim targets)
   const DATA_KEY = 'wt_cache_v1';  // cached sheet data: { weight:[], intake:[], sport:[] }
   const QUEUE_KEY= 'wt_queue_v1';  // pending offline writes
@@ -103,7 +103,26 @@ const WT = (() => {
     document.addEventListener('DOMContentLoaded', showVersionBadge);
   else showVersionBadge();
 
+  // ---------- daily kcal target ----------
+  // Per-weekday intake targets live in cfg.simTargets = [Mon..Sun]. Falls back to
+  // the older two-value scheme, then to sensible defaults. Shared so the Calories
+  // gauge and the Simulation page always agree on a given day's target.
+  function kcalTargets(cfg){
+    cfg = cfg || loadCfg();
+    let t = cfg.simTargets;
+    if(!Array.isArray(t) || t.length !== 7){
+      const wd = parseFloat(cfg.simWeekday) || 1200;
+      const we = parseFloat(cfg.simWeekend) || 2500;
+      t = [wd, wd, wd, wd, wd, we, we];
+    }
+    return t.map(function(v){ return Math.min(3000, Math.max(0, parseFloat(v) || 0)); });
+  }
+  function kcalTargetFor(date, cfg){
+    const di = (date.getDay() + 6) % 7;   // 0=Mon … 6=Sun
+    return kcalTargets(cfg)[di];
+  }
+
   return { APP_VERSION, CFG_KEY, DATA_KEY, START, GOALS,
            loadCfg, saveCfg, loadCacheObj, saveCacheObj, loadWeight, saveWeight, latestWeight,
-           esc, bmr, tdee, api, queue, flushQueue, loadQueue };
+           esc, bmr, tdee, kcalTargets, kcalTargetFor, api, queue, flushQueue, loadQueue };
 })();
