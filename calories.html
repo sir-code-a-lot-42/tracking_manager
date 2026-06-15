@@ -86,8 +86,18 @@
 
 <div class="gauge-container">
   <div class="gauge-meta">
-    <span id="gaugeStatus">Ketosis Zone</span>
-    <span id="gaugeValue">0 / 20g Limit</span>
+    <span id="kcalStatus">Net Energy</span>
+    <span id="kcalValue">0 / 0 kcal</span>
+  </div>
+  <div class="gauge-bar">
+    <div id="kcalFill" class="gauge-fill"></div>
+  </div>
+</div>
+
+<div class="gauge-container">
+  <div class="gauge-meta">
+    <span id="gaugeStatus">Carbs</span>
+    <span id="gaugeValue">0 / 50g</span>
   </div>
   <div class="gauge-bar">
     <div id="gaugeFill" class="gauge-fill"></div>
@@ -233,20 +243,57 @@
     $('totalCarbs').innerText = c.toFixed(1) + 'g';
     $('totalProtein').innerText = p.toFixed(1) + 'g';
 
-    // Render Keto Gauge
-    const targetLimit = 20;
-    const percentage = Math.min((c / targetLimit) * 100, 100);
+    // Render kcal Gauge — net energy vs. the SELECTED day's target (from the
+    // per-weekday sliders on the Simulation page). For a deficit, under = good.
+    const selDate = new Date($('datePicker').value + 'T00:00:00');
+    const kcalTarget = WT.kcalTargetFor(selDate, cfg);
+    const kfill = $('kcalFill');
+    if (kcalTarget > 0) {
+      const kfrac = netKcal / kcalTarget;
+      kfill.style.width = Math.max(0, Math.min(kfrac * 100, 100)) + '%';
+      $('kcalValue').innerText = `${netKcal} / ${kcalTarget} kcal`;
+      if (kfrac > 1) {
+        kfill.style.backgroundColor = 'var(--hi)';
+        $('kcalStatus').innerText = "Over target";
+        $('kcalStatus').style.color = 'var(--hi)';
+      } else if (kfrac >= 0.9) {
+        kfill.style.backgroundColor = 'var(--mid)';
+        $('kcalStatus').innerText = "Near target";
+        $('kcalStatus').style.color = 'var(--mid)';
+      } else {
+        kfill.style.backgroundColor = 'var(--good)';
+        $('kcalStatus').innerText = "Under target";
+        $('kcalStatus').style.color = 'var(--good)';
+      }
+    } else {
+      // target 0 = fasting day; any intake shows as over
+      kfill.style.width = netKcal > 0 ? '100%' : '0%';
+      kfill.style.backgroundColor = netKcal > 0 ? 'var(--hi)' : 'var(--good)';
+      $('kcalValue').innerText = `${netKcal} / 0 kcal`;
+      $('kcalStatus').innerText = netKcal > 0 ? "Fasting day — intake logged" : "Fasting day";
+      $('kcalStatus').style.color = netKcal > 0 ? 'var(--hi)' : 'var(--good)';
+    }
+
+    // Render Carb Gauge — limit is adjustable (cfg.carbLimit), default 50 g.
+    // Ketosis is a gradient, not on/off: green well under, amber approaching, red over.
+    const carbLimit = parseFloat(cfg.carbLimit) || 50;
+    const percentage = Math.min((c / carbLimit) * 100, 100);
     const fill = $('gaugeFill');
     fill.style.width = percentage + '%';
 
-    $('gaugeValue').innerText = `${c.toFixed(1)} / ${targetLimit}g Limit`;
-    if (c > targetLimit) {
+    $('gaugeValue').innerText = `${c.toFixed(1)} / ${carbLimit}g`;
+    const frac = c / carbLimit;
+    if (frac > 1) {
       fill.style.backgroundColor = 'var(--hi)';
-      $('gaugeStatus').innerText = "Keto Alert: Out of Ketosis!";
+      $('gaugeStatus').innerText = "Over carb limit";
       $('gaugeStatus').style.color = 'var(--hi)';
+    } else if (frac >= 0.8) {
+      fill.style.backgroundColor = 'var(--mid)';
+      $('gaugeStatus').innerText = "Approaching limit";
+      $('gaugeStatus').style.color = 'var(--mid)';
     } else {
       fill.style.backgroundColor = 'var(--good)';
-      $('gaugeStatus').innerText = "Safe: Ketosis Maintained";
+      $('gaugeStatus').innerText = "Low-carb zone";
       $('gaugeStatus').style.color = 'var(--good)';
     }
 
