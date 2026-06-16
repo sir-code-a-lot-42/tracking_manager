@@ -26,6 +26,7 @@ const FOOD_DATABASE = [
 
   // --- Diary Products ---
   { name: "Skyr",  cat: "Diary Products",  kcal: 58,  carbs: 4,  protein: 9.5 },
+  { name: "Feta",               cat: "Dairy & Cheese", kcal: 290, carbs: 1.2,  protein: 16 },
   { name: "Greek Yoghurt 10%",  cat: "Diary Products",  kcal: 117,  carbs: 3.6,  protein: 3.2 },
   
   // --- Fruit ---
