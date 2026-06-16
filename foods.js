@@ -35,6 +35,7 @@ const FOOD_DATABASE = [
   { name: "Kiwi",               cat: "Fruit",      kcal: 61,  carbs: 15.0, protein: 1.1 },
   { name: "Tangerine",          cat: "Fruit",      kcal: 53,  carbs: 13.0, protein: 0.8 },
   { name: "Pineapple",          cat: "Fruit",      kcal: 59,  carbs: 12.4, protein: 0.5 },
+  { name: "Nectarine",          cat: "Fruit",      kcal: 44,  carbs: 8.5,  protein: 1.1 },
 
   // --- Berries ---
   { name: "Blueberries",        cat: "Berries",    kcal: 42,  carbs: 7.4,  protein: 0.6 },
