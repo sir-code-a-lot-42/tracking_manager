@@ -13,7 +13,13 @@ const FOOD_DATABASE = [
   { name: "Celery Sticks",      cat: "Vegetables", kcal: 17,  carbs: 1.7,  protein: 0.8 },
   { name: "Cucumber",           cat: "Vegetables", kcal: 12,  carbs: 1.8,  protein: 0.6 },
   { name: "Radishes",           cat: "Vegetables", kcal: 15,  carbs: 2.0,  protein: 1.0 },
+  { name: "Sweet Potato",       cat: "Vegetables", kcal: 86,  carbs: 18.5, protein: 1.6 },
   { name: "Tomatoes",           cat: "Vegetables", kcal: 18,  carbs: 2.6,  protein: 1.0 },
+  { name: "Onions",             cat: "Vegetables", kcal: 40,  carbs: 4.9,  protein: 1.3 },
+
+  // --- ats & Oils" ---
+  { name: "Olive Oil",          cat: "Fats & Oils", kcal: 884, carbs: 0.0,  protein: 0.0 },
+  { name: "Butter",             cat: "Fats & Oils", kcal: 717, carbs: 0.6,  protein: 0.9 },
 
   // --- Mushrooms ---
   { name: "Mushrooms (white)",  cat: "Mushrooms",  kcal: 15,  carbs: 0.6,  protein: 2.7 },
