@@ -63,6 +63,7 @@
   <h2>Intake & Sport</h2>
   <input type="date" id="datePicker" style="width:auto;padding:6px 10px;">
 </div>
+<div id="autoSyncDot" style="font-size:11px;color:var(--muted);margin:-10px 0 14px 2px">⌁ auto-sync on</div>
 
 <div class="nav-tabs">
   <a href="calories.html" class="active">Log Tracker</a>
@@ -408,6 +409,39 @@
     const d = $('datePicker').value;
     localStorage.setItem(`intake_${d}`, JSON.stringify(currentLog));
     renderDay();
+    autoSyncIntake(d);           // push this day's intake automatically (date-stamped)
+  }
+
+  // ---- Automatic intake sync ----------------------------------------------
+  // Pushes a given day's intake to the Sheet without the manual button. The date
+  // is captured at call time and baked into the payload, so a flush that happens
+  // later (or the next morning) still files the entry under the correct day —
+  // this is what prevents days from mixing up. Debounced so rapid edits coalesce.
+  const autoTimers = {};
+  function buildIntakePayload(dateStr){
+    const log = JSON.parse(localStorage.getItem(`intake_${dateStr}`) || '[]');
+    let kcal = 0, carbs = 0, protein = 0;
+    log.forEach(i => { kcal += i.kcal; carbs += i.carbs; protein += i.protein; });
+    return { action:'add', table:'intake', date: dateStr,
+      kcal, carbs_g: carbs, protein_g: protein, items_json: JSON.stringify(log) };
+  }
+  function autoSyncIntake(dateStr){
+    if(!cfg.url || !cfg.token) return;          // not set up; nothing to do
+    clearTimeout(autoTimers[dateStr]);
+    autoTimers[dateStr] = setTimeout(async () => {
+      const payload = buildIntakePayload(dateStr);
+      try {
+        await WT.api(cfg, 'add', payload);
+        setSyncDot('ok');
+      } catch(e) {
+        if(e.message !== 'not-configured'){ WT.queue(payload); setSyncDot('queued'); }
+      }
+    }, 1500);                                    // coalesce rapid edits
+  }
+  function setSyncDot(state){
+    const el = $('autoSyncDot'); if(!el) return;
+    el.style.color = state==='ok' ? 'var(--good)' : (state==='queued' ? 'var(--mid)' : 'var(--muted)');
+    el.innerText = state==='ok' ? '⌁ synced' : (state==='queued' ? '⌁ queued (offline)' : '⌁ auto-sync on');
   }
 
   function loadLocalCache() {
@@ -456,8 +490,29 @@
   };
 
   // flush any queued writes when (re)opened or back online
-  window.addEventListener('online', () => WT.flushQueue(cfg));
+  window.addEventListener('online', () => { WT.flushQueue(cfg).then(()=>setSyncDot('ok')); });
   WT.flushQueue(cfg);
+
+  // Auto-sync today's intake on open (covers the case where edits were made
+  // offline earlier, or on another device), and set the status indicator.
+  if(cfg.url && cfg.token){ setSyncDot('auto'); autoSyncIntake($('datePicker').value); }
+
+  // Optional 23:00 safety flush: only fires if the app is open at the time.
+  // Browser code can't run while the PWA is closed, so this is a best-effort
+  // nudge, not a server cron — opening the app any time achieves the same.
+  (function scheduleNightlyFlush(){
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(23, 0, 0, 0);
+    if(next <= now) next.setDate(next.getDate() + 1);
+    setTimeout(function fire(){
+      // flush the queue and re-push the day that just ended (date stamped correctly)
+      const today = new Date().toLocaleDateString('sv').substring(0,10);
+      WT.flushQueue(cfg).then(()=>setSyncDot('ok'));
+      autoSyncIntake(today);
+      setTimeout(scheduleNightlyFlush, 1000);   // reschedule for the next night
+    }, next - now);
+  })();
 
   initDatabase();
   loadLocalCache();
