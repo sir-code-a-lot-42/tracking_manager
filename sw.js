@@ -1,4 +1,4 @@
-const CACHE='gewicht-v14';
+const CACHE='gewicht-v15';
 const SHELL=['index.html','analysis.html','calories.html','calories-analysis.html',
   'training.html','strava.html','config.js','foods.js','manifest.json','icon-180.png','icon-192.png','icon-512.png'];
 
