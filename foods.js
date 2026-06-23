@@ -16,18 +16,22 @@ const FOOD_DATABASE = [
   { name: "Sweet Potato",       cat: "Vegetables", kcal: 86,  carbs: 18.5, protein: 1.6 },
   { name: "Tomatoes",           cat: "Vegetables", kcal: 18,  carbs: 2.6,  protein: 1.0 },
   { name: "Onions",             cat: "Vegetables", kcal: 40,  carbs: 4.9,  protein: 1.3 },
+  { name: "Cauliflower",        cat: "Vegetables", kcal: 25,  carbs: 2.3,  protein: 1.9 },
+  { name: "Kohlrabi",           cat: "Vegetables", kcal: 27,  carbs: 3.7,  protein: 1.7 },
+  { name: "Potatoes",           cat: "Vegetables", kcal: 77,  carbs: 15.0, protein: 2.0 },
 
-  // --- ats & Oils" ---
-  { name: "Olive Oil",          cat: "Fats & Oils", kcal: 884, carbs: 0.0,  protein: 0.0 },
+  // --- Fats & Oils" ---
+  { name: "Olive Oil (1x tbsp 14g)",          cat: "Fats & Oils", kcal: 884, carbs: 0.0,  protein: 0.0 },
   { name: "Butter",             cat: "Fats & Oils", kcal: 717, carbs: 0.6,  protein: 0.9 },
 
   // --- Mushrooms ---
   { name: "Mushrooms (white)",  cat: "Mushrooms",  kcal: 15,  carbs: 0.6,  protein: 2.7 },
 
   // --- Diary Products ---
-  { name: "Skyr",  cat: "Diary Products",  kcal: 58,  carbs: 4,  protein: 9.5 },
+  { name: "Skyr",  cat: "Dairy & Cheese",  kcal: 58,  carbs: 4,  protein: 9.5 },
   { name: "Feta",               cat: "Dairy & Cheese", kcal: 290, carbs: 1.2,  protein: 16 },
-  { name: "Greek Yoghurt 10%",  cat: "Diary Products",  kcal: 117,  carbs: 3.6,  protein: 3.2 },
+  { name: "Greek Yoghurt 10%",  cat: "Dairy & Cheese",  kcal: 117,  carbs: 3.6,  protein: 3.2 },
+  { name: "Egg (1 ≈ 55g)",      cat: "Dairy & Cheese", kcal: 155, carbs: 0.6,  protein: 13.0 },
   
   // --- Fruit ---
   { name: "Avocado",            cat: "Fruit",      kcal: 130, carbs: 0.4,  protein: 1.9 },
@@ -49,9 +53,14 @@ const FOOD_DATABASE = [
   { name: "Strawberries",       cat: "Berries",    kcal: 32,  carbs: 5.4,  protein: 0.8 },
   { name: "Raspberries",        cat: "Berries",    kcal: 34,  carbs: 4.8,  protein: 1.3 },
 
+  // --- Stuff ---
+  { name: "Tempeh",        cat: "Stuff",    kcal: 144,  carbs: 17,  protein: 9.9 },
+  { name: "Seitan",       cat: "Stuff",    kcal: 118,  carbs: 2.4,  protein: 23 },
+
+
   // --- Nuts & Seeds ---
   { name: "Pine Nuts",          cat: "Nuts & Seeds", kcal: 600, carbs: 13.0, protein: 14.0 }
 ];
 
 // Order of the category dropdown; unknown categories are appended.
-const FOOD_CATEGORIES = ["Vegetables", "Berries", "Fruit", "Mushrooms", "Nuts & Seeds"];
+const FOOD_CATEGORIES = ["Vegetables", "Berries", "Fruit", "Mushrooms", "Nuts & Seeds" , "Dairy & Cheese" , "Stuff"];
