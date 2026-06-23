@@ -60,6 +60,9 @@ const FOOD_DATABASE = [
 
   // --- Nuts & Seeds ---
   { name: "Pine Nuts",          cat: "Nuts & Seeds", kcal: 600, carbs: 13.0, protein: 14.0 }
+  { name: "Cashew Nuts",        cat: "Nuts & Seeds", kcal: 553, carbs: 26.9, protein: 18.2 },
+  { name: "Walnuts",            cat: "Nuts & Seeds", kcal: 654, carbs: 11.0, protein: 15.2 },
+  { name: "Macadamia Nuts",     cat: "Nuts & Seeds", kcal: 718, carbs: 5.2,  protein: 7.9 },
 ];
 
 // Order of the category dropdown; unknown categories are appended.
