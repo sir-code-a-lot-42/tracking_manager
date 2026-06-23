@@ -53,13 +53,13 @@ const FOOD_DATABASE = [
   { name: "Strawberries",       cat: "Berries",    kcal: 32,  carbs: 5.4,  protein: 0.8 },
   { name: "Raspberries",        cat: "Berries",    kcal: 34,  carbs: 4.8,  protein: 1.3 },
 
-  // --- Stuff ---
-  { name: "Tempeh",        cat: "Stuff",    kcal: 144,  carbs: 17,  protein: 9.9 },
-  { name: "Seitan",       cat: "Stuff",    kcal: 118,  carbs: 2.4,  protein: 23 },
+  // --- Plant Protein ---
+  { name: "Tempeh",        cat: "Plant Protein",    kcal: 144,  carbs: 17,  protein: 9.9 },
+  { name: "Seitan",       cat: "Plant Protein",    kcal: 118,  carbs: 2.4,  protein: 23 },
 
 
   // --- Nuts & Seeds ---
-  { name: "Pine Nuts",          cat: "Nuts & Seeds", kcal: 600, carbs: 13.0, protein: 14.0 }
+  { name: "Pine Nuts",          cat: "Nuts & Seeds", kcal: 600, carbs: 13.0, protein: 14.0 },
   { name: "Cashew Nuts",        cat: "Nuts & Seeds", kcal: 553, carbs: 26.9, protein: 18.2 },
   { name: "Walnuts",            cat: "Nuts & Seeds", kcal: 654, carbs: 11.0, protein: 15.2 },
   { name: "Macadamia Nuts",     cat: "Nuts & Seeds", kcal: 718, carbs: 5.2,  protein: 7.9 },
